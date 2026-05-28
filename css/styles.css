@@ -1056,7 +1056,7 @@ tr:last-child td {
 }
 
 /* Responsive Media Queries */
-@media (max-width: 1024px) {
+@media (max-width: 768px) {
     body {
         flex-direction: column;
         overflow: hidden;
