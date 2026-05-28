@@ -291,6 +291,12 @@ body {
     margin-bottom: 32px;
 }
 
+.storage-card {
+    grid-column: span 2;
+    margin-top: 20px;
+    border: 1px dashed var(--primary-light) !important;
+}
+
 /* Form Styles */
 .form-group {
     margin-bottom: 12px;
@@ -1244,6 +1250,11 @@ tr:last-child td {
     
     .rd-installment-form .btn {
         width: 100%;
+    }
+
+    /* Reset storage card to 1 column on mobile/tablet viewport sizes */
+    .storage-card {
+        grid-column: span 1 !important;
     }
 }
 

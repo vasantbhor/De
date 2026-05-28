@@ -220,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (storageArea) {
             storageArea.innerHTML = `
-                <div class="card" style="grid-column: span 2; margin-top: 20px; border: 1px dashed var(--primary-light);">
+                <div class="card storage-card">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <h3 style="display: flex; align-items: center; gap: 10px;">
