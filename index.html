@@ -5,9 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deposit Management System — Premium Portfolio Tracking</title>
-    <link rel="stylesheet" href="css/styles.css?v=3">
+    <link rel="stylesheet" href="css/styles.css?v=99">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for (let r of registrations) r.unregister();
+            });
+            if (window.caches) {
+                caches.keys().then(function(names) {
+                    for (let name of names) caches.delete(name);
+                });
+            }
+        }
+    </script>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#F37023">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <!-- System Font Stack for Offline/Speed -->
@@ -123,6 +135,10 @@
                 <ion-icon src="lib/svg/add-circle-outline.svg"></ion-icon>
                 <span>Open Deposit</span>
             </li>
+            <li class="nav-item" data-view="find-edit-deposit">
+                <ion-icon src="lib/svg/search-outline.svg"></ion-icon>
+                <span>Find & Edit Deposit</span>
+            </li>
             <li class="nav-item" data-view="manage-rd">
                 <ion-icon src="lib/svg/wallet-outline.svg"></ion-icon>
                 <span>Manage RD</span>
@@ -178,7 +194,8 @@
                 </div>
                 <div class="fin-dash-header-right">
                     <select id="theme-select" class="fin-theme-select">
-                        <option value="default">💎 Premium Blue</option>
+                        <option value="default">🏦 ICICI Bank (Orange & Navy)</option>
+                        <option value="icici-light">☀️ ICICI Bank (Light Mode)</option>
                         <option value="light">☀️ Day Light</option>
                         <option value="emerald">🌿 Emerald Forest</option>
                         <option value="sunset">🌅 Sunset Glow</option>
@@ -241,7 +258,7 @@
                 </div>
 
                 <!-- Next Maturity -->
-                <div class="fin-kpi-card fin-kpi-warning" id="kpi-maturity" onclick="document.querySelector('[data-view=\'upcoming-maturities\']').click()">
+                <div class="fin-kpi-card fin-kpi-warning" id="kpi-maturity" onclick="showNextMaturityDetails()" style="cursor: pointer;">
                     <div class="fin-kpi-icon">
                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                     </div>
@@ -295,19 +312,19 @@
                         <svg id="donut-svg" viewBox="0 0 200 200" width="180" height="180">
                             <circle cx="100" cy="100" r="75" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="28"/>
                             <!-- FD segment -->
-                            <circle id="donut-fd" cx="100" cy="100" r="75" fill="none" stroke="#6366f1" stroke-width="28" stroke-dasharray="0 471" stroke-linecap="butt" transform="rotate(-90 100 100)" style="transition: stroke-dasharray 1.2s ease"/>
+                            <circle id="donut-fd" cx="100" cy="100" r="75" fill="none" stroke="#F37023" stroke-width="28" stroke-dasharray="0 471" stroke-linecap="butt" transform="rotate(-90 100 100)" style="transition: stroke-dasharray 1.2s ease"/>
                             <!-- RD segment -->
-                            <circle id="donut-rd" cx="100" cy="100" r="75" fill="none" stroke="#10b981" stroke-width="28" stroke-dasharray="0 471" stroke-linecap="butt" transform="rotate(-90 100 100)" style="transition: stroke-dasharray 1.2s ease; transition-delay: 0.1s"/>
+                            <circle id="donut-rd" cx="100" cy="100" r="75" fill="none" stroke="#0055A5" stroke-width="28" stroke-dasharray="0 471" stroke-linecap="butt" transform="rotate(-90 100 100)" style="transition: stroke-dasharray 1.2s ease; transition-delay: 0.1s"/>
                             <!-- DD segment -->
-                            <circle id="donut-dd" cx="100" cy="100" r="75" fill="none" stroke="#f59e0b" stroke-width="28" stroke-dasharray="0 471" stroke-linecap="butt" transform="rotate(-90 100 100)" style="transition: stroke-dasharray 1.2s ease; transition-delay: 0.2s"/>
+                            <circle id="donut-dd" cx="100" cy="100" r="75" fill="none" stroke="#FF9900" stroke-width="28" stroke-dasharray="0 471" stroke-linecap="butt" transform="rotate(-90 100 100)" style="transition: stroke-dasharray 1.2s ease; transition-delay: 0.2s"/>
                             <!-- Center text -->
                             <text x="100" y="94" text-anchor="middle" fill="var(--text-primary)" font-size="13" font-weight="700" font-family="Inter,sans-serif" id="donut-center-val">₹0</text>
                             <text x="100" y="112" text-anchor="middle" fill="var(--text-secondary)" font-size="9" font-family="Inter,sans-serif">Total Principal</text>
                         </svg>
                         <div class="fin-donut-legend" id="donut-legend">
-                            <div class="fin-legend-item"><span class="fin-legend-dot" style="background:#6366f1"></span><span>FD</span><strong id="legend-fd-val">₹0</strong></div>
-                            <div class="fin-legend-item"><span class="fin-legend-dot" style="background:#10b981"></span><span>RD</span><strong id="legend-rd-val">₹0</strong></div>
-                            <div class="fin-legend-item"><span class="fin-legend-dot" style="background:#f59e0b"></span><span>DD</span><strong id="legend-dd-val">₹0</strong></div>
+                            <div class="fin-legend-item"><span class="fin-legend-dot" style="background:#F37023"></span><span>FD</span><strong id="legend-fd-val">₹0</strong></div>
+                            <div class="fin-legend-item"><span class="fin-legend-dot" style="background:#0055A5"></span><span>RD</span><strong id="legend-rd-val">₹0</strong></div>
+                            <div class="fin-legend-item"><span class="fin-legend-dot" style="background:#FF9900"></span><span>DD</span><strong id="legend-dd-val">₹0</strong></div>
                         </div>
                     </div>
                 </div>
@@ -496,6 +513,78 @@
             </div>
         </section>
 
+        <!-- Find & Edit Deposit View -->
+        <section id="find-edit-deposit" class="view" style="display: none;">
+            <div class="header header-flex">
+                <div>
+                    <h1>Find & Edit Deposit</h1>
+                    <p>Search deposit records by Customer Name, Account / FD No, or Reference and edit directly.</p>
+                </div>
+            </div>
+
+            <!-- Search Controls Card -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div style="display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;">
+                    <div class="form-group" style="flex: 2; min-width: 260px; margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; margin-bottom: 4px;">Search Query (Customer Name, FD / Acc No, Reference)</label>
+                        <div style="position: relative;">
+                            <input type="text" id="search-deposit-query" class="form-control" placeholder="Search by customer name, account no, or deposit ref..." style="padding: 10px 36px 10px 14px; width: 100%;">
+                            <button id="clear-search-btn" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--text-secondary); cursor: pointer; display: none; font-weight: bold;">✕</button>
+                        </div>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; margin-bottom: 4px;">Deposit Type</label>
+                        <select id="search-filter-type" class="form-control">
+                            <option value="ALL">All Types (FD, RD, DD)</option>
+                            <option value="FD">Fixed Deposit (FD)</option>
+                            <option value="RD">Recurring Deposit (RD)</option>
+                            <option value="DD">Damduppat (DD)</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                        <label style="font-size: 0.8rem; margin-bottom: 4px;">Status</label>
+                        <select id="search-filter-status" class="form-control">
+                            <option value="ALL">All Status</option>
+                            <option value="ACTIVE">Active Only</option>
+                            <option value="MATURED">Matured Only</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-secondary" onclick="resetSearchFilters()" style="height: fit-content; padding: 10px 18px;">
+                        Reset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Search Results Card -->
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h3 style="color: var(--primary-light);">Search Results</h3>
+                    <span id="search-results-badge" class="badge badge-active" style="font-size: 0.85rem; padding: 6px 14px;">0 Deposits Found</span>
+                </div>
+                <div class="table-container">
+                    <table id="find-deposit-table">
+                        <thead>
+                            <tr>
+                                <th>Account No</th>
+                                <th>Customer Name</th>
+                                <th>Deposit Name / Ref</th>
+                                <th>Type</th>
+                                <th>Principal Amount</th>
+                                <th>Rate</th>
+                                <th>Maturity Date</th>
+                                <th>Maturity Amount</th>
+                                <th>Status</th>
+                                <th style="text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Data populated dynamically by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
         <!-- Manage RD View -->
         <section id="manage-rd" class="view" style="display: none;">
             <div class="header">
@@ -527,14 +616,15 @@
         <section id="upcoming-maturities" class="view" style="display: none;">
             <div class="header">
                 <h1>Upcoming Maturities</h1>
-                <p>Deposits nearing closure.</p>
+                <p id="upcoming-maturities-subtitle">Deposits nearing closure.</p>
             </div>
             <div class="card" style="margin-bottom: 24px;">
-                <div class="btn-row" style="display: flex; gap: 10px;">
+                <div class="btn-row" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-secondary filter-mat" data-days="next" id="filter-mat-next">Next Maturity</button>
                     <button class="btn btn-secondary filter-mat" data-days="0">Today</button>
                     <button class="btn btn-secondary filter-mat" data-days="10">Next 10 Days</button>
                     <button class="btn btn-secondary filter-mat" data-days="15">Next 15 Days</button>
-                    <button class="btn btn-secondary filter-mat" data-days="30">Next 30 Days</button>
+                    <button class="btn btn-primary filter-mat" data-days="30">Next 30 Days</button>
                     <button class="btn btn-secondary filter-mat" data-days="60">Next 60 Days</button>
                     <button class="btn btn-secondary filter-mat" data-days="90">Next 90 Days</button>
                 </div>
@@ -548,7 +638,7 @@
                                 <th>Deposit Name</th>
                                 <th>Maturity Date (DD/MM/YYYY)</th>
                                 <th>Proceeds</th>
-                                <th>Contact</th>
+                                <th>Details</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -1006,6 +1096,99 @@
         </div>
     </div>
 
+    <!-- Edit Deposit Modal -->
+    <div id="edit-deposit-modal" class="modal-overlay" style="display: none;">
+        <div class="modal" style="max-width: 650px; width: 95%;">
+            <div class="modal-header">
+                <h3 style="color: var(--primary-light); display: flex; align-items: center; gap: 8px;">
+                    <ion-icon src="lib/svg/create-outline.svg"></ion-icon> Edit Deposit Details
+                </h3>
+                <ion-icon src="lib/svg/close-outline.svg" class="modal-close" onclick="closeEditModal()"></ion-icon>
+            </div>
+            <form id="edit-deposit-form" class="form-grid">
+                <input type="hidden" id="edit-dep-id">
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label>Customer Name</label>
+                        <input type="text" id="edit-dep-customer" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Deposit Name / Reference</label>
+                        <input type="text" id="edit-dep-name" required>
+                    </div>
+                </div>
+                <div class="form-row form-row-3">
+                    <div class="form-group">
+                        <label>Deposit Type</label>
+                        <select id="edit-dep-type">
+                            <option value="FD">Fixed Deposit (FD)</option>
+                            <option value="RD">Recurring Deposit (RD)</option>
+                            <option value="DD">Damduppat (DD)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Account Number</label>
+                        <input type="text" id="edit-dep-acc-no" required>
+                    </div>
+                    <div class="form-group">
+                        <label id="edit-label-amount">Principal Amount (₹)</label>
+                        <input type="number" id="edit-dep-amount" required>
+                    </div>
+                </div>
+                <div class="form-row form-row-3">
+                    <div class="form-group" id="edit-installment-day-group" style="display: none;">
+                        <label>Installment Day (1-31)</label>
+                        <input type="number" id="edit-dep-installment-day" min="1" max="31">
+                    </div>
+                    <div class="form-group">
+                        <label>Interest Rate (%)</label>
+                        <input type="number" step="0.01" id="edit-dep-rate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Start Date</label>
+                        <input type="date" id="edit-dep-start" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Duration (Months)</label>
+                        <input type="number" id="edit-dep-months" required>
+                    </div>
+                </div>
+                <div class="form-row form-row-2">
+                    <div class="form-group" id="edit-compounding-group">
+                        <label>Compounding Frequency</label>
+                        <select id="edit-dep-compounding">
+                            <option value="12">Annually</option>
+                            <option value="4">Quarterly</option>
+                            <option value="1">Monthly</option>
+                            <option value="0">Simple Interest</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Payout Type</label>
+                        <select id="edit-dep-payout">
+                            <option value="maturity">At Maturity</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                </div>
+                <!-- Live preview banner inside modal -->
+                <div style="background: rgba(243,112,35,0.08); border: 1px dashed var(--primary-light); padding: 14px; border-radius: 8px; margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; gap: 15px; flex-wrap: wrap; font-size: 0.85rem;">
+                        <div><span class="text-secondary">New Maturity Date:</span> <strong id="edit-preview-date">--</strong></div>
+                        <div><span class="text-secondary">Estimated Interest:</span> <strong id="edit-preview-interest" style="color: var(--accent);">₹0</strong></div>
+                        <div><span class="text-secondary">Maturity Amount:</span> <strong id="edit-preview-maturity" style="color: var(--primary-light);">₹0</strong></div>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 15px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Deposit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- RD Ledger Modal -->
     <div id="rd-ledger-modal" class="modal-overlay">
         <div class="modal" style="max-width: 700px;">
@@ -1018,7 +1201,7 @@
             </div>
 
             <!-- Add Payment Form directly inside ledger for convenience -->
-            <div style="background: rgba(99,102,241,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed var(--primary-light);">
+            <div style="background: rgba(243,112,35,0.05); padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px dashed var(--primary-light);">
                 <h4 style="margin-bottom: 10px; font-size: 0.9rem; color: var(--primary-light);">Add Installment</h4>
                 <div class="rd-installment-form">
                     <div class="form-group" style="margin-bottom: 0px;">

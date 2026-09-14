@@ -76,16 +76,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     };
 
+    // Helper for timezone-immune date comparison
+    function getTodayDateString() {
+        const d = new Date();
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function isDepositMatured(maturityDate) {
+        if (!maturityDate) return false;
+        const today = getTodayDateString();
+        return maturityDate <= today;
+    }
+
     let deposits = [];
     const localData = JSON.parse(localStorage.getItem('deposits') || '[]');
     
     // Attempt to load from folder
     const folderData = await FolderStorage.loadFromFile();
-    if (folderData) {
+    if (folderData && folderData.length > 0) {
         deposits = folderData;
         console.log("Loaded from Folder Storage");
-    } else {
+    } else if (localData && localData.length > 5) {
         deposits = localData;
+        console.log("Loaded from Local Storage");
+    } else {
+        try {
+            const res = await fetch('./storage/deposits_data.json');
+            if (res.ok) {
+                deposits = await res.json();
+                localStorage.setItem('deposits', JSON.stringify(deposits));
+                console.log("Loaded default deposits dataset");
+            } else if (localData.length > 0) {
+                deposits = localData;
+            }
+        } catch (e) {
+            console.error("Fallback load failed:", e);
+            if (localData.length > 0) deposits = localData;
+        }
     }
 
     // Migrate RD Data to include transactions ledger
@@ -157,9 +187,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             targetView.style.display = 'block';
 
             if (viewId === 'dashboard') updateDashboard();
+            if (viewId === 'find-edit-deposit') renderFindEditDeposit();
             if (viewId === 'manage-rd') renderManageRD();
             if (viewId === 'maturity-report') renderMaturityReport();
-            if (viewId === 'upcoming-maturities') renderUpcomingMaturities(30); // Default 30
+            if (viewId === 'upcoming-maturities') {
+                renderUpcomingMaturities(30); // Default 30
+                document.querySelectorAll('.filter-mat').forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-secondary');
+                });
+                const d30Btn = document.querySelector('.filter-mat[data-days="30"]');
+                if (d30Btn) {
+                    d30Btn.classList.remove('btn-secondary');
+                    d30Btn.classList.add('btn-primary');
+                }
+            }
             if (viewId === 'customer-report') renderCustomerReport();
             if (viewId === 'interest-report') renderInterestReport();
             if (viewId === 'due-report') {
@@ -493,7 +535,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Upcoming Maturity Filter Buttons
     document.querySelectorAll('.filter-mat').forEach(btn => {
         btn.addEventListener('click', () => {
-            const days = parseInt(btn.getAttribute('data-days'));
+            const daysAttr = btn.getAttribute('data-days');
+            const days = daysAttr === 'next' ? 'next' : parseInt(daysAttr);
             renderUpcomingMaturities(days);
 
             // Toggle active style
@@ -568,26 +611,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const threshold = new Date();
-        threshold.setDate(threshold.getDate() + days);
-        threshold.setHours(23, 59, 59, 999);
+        let filtered = [];
 
-        const filtered = deposits.filter(d => {
-            const matDate = new Date(d.maturityDate + "T00:00:00");
-            return matDate >= today && matDate <= threshold;
-        }).sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate));
+        if (days === 'next') {
+            const upcoming = deposits.filter(d => {
+                const matDate = new Date(d.maturityDate + "T00:00:00");
+                return matDate >= today;
+            }).sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate));
+
+            if (upcoming.length > 0) {
+                const earliestDate = upcoming[0].maturityDate;
+                filtered = upcoming.filter(d => d.maturityDate === earliestDate);
+            }
+        } else {
+            const threshold = new Date();
+            threshold.setDate(threshold.getDate() + Number(days));
+            threshold.setHours(23, 59, 59, 999);
+
+            filtered = deposits.filter(d => {
+                const matDate = new Date(d.maturityDate + "T00:00:00");
+                return matDate >= today && matDate <= threshold;
+            }).sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate));
+        }
+
+        const subtitle = document.getElementById('upcoming-maturities-subtitle');
+        if (subtitle) {
+            if (days === 'next') {
+                if (filtered.length > 0) {
+                    const daysLeft = Math.ceil((new Date(filtered[0].maturityDate + 'T00:00:00') - today) / 86400000);
+                    const daysStr = daysLeft === 0 ? 'Matures Today' : daysLeft === 1 ? '1 day remaining' : `${daysLeft} days remaining`;
+                    subtitle.textContent = `Showing next maturity on ${Calculations.formatDate(filtered[0].maturityDate)} only (${daysStr}).`;
+                } else {
+                    subtitle.textContent = 'No upcoming maturities found.';
+                }
+            } else if (days === 0) {
+                subtitle.textContent = 'Deposits maturing today.';
+            } else {
+                subtitle.textContent = `Deposits nearing closure in next ${days} days.`;
+            }
+        }
 
         let totalProceeds = 0;
 
         filtered.forEach(d => {
             totalProceeds += d.maturityAmount;
             const tr = document.createElement('tr');
+            tr.className = 'clickable';
+            tr.style.cursor = 'pointer';
+            tr.title = 'Click row to view deposit details';
+            tr.onclick = () => showDepositModal(d.id);
             tr.innerHTML = `
-                <td class="clickable" onclick="showCustomerDetails('${d.customer}')">${d.customer}</td>
-                <td class="clickable" onclick="showDepositModal(${d.id})">${d.name}</td>
+                <td style="font-weight: 600;">${d.customer}</td>
+                <td style="font-weight: 600; color: var(--primary-light);">${d.name}</td>
                 <td>${Calculations.formatDate(d.maturityDate)}</td>
-                <td>₹${d.maturityAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
-                <td style="color: var(--primary-light); cursor: pointer;"><ion-icon name="call-outline"></ion-icon> Call</td>
+                <td style="font-weight: 600; color: var(--accent);">₹${d.maturityAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                <td>
+                    <button class="btn btn-secondary btn-sm" style="padding: 4px 10px; font-size: 0.8rem; pointer-events: none;" tabindex="-1">
+                        <ion-icon src="lib/svg/document-text-outline.svg" style="vertical-align: middle; margin-right: 4px;"></ion-icon>Details
+                    </button>
+                </td>
             `;
             tbody.appendChild(tr);
         });
@@ -629,7 +711,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const typeMap = { FD: 0, RD: 0, DD: 0 };
 
         for (const d of deposits) {
-            const matDate = new Date(d.maturityDate + 'T00:00:00');
+            const isMatured = isDepositMatured(d.maturityDate);
             const currentBal = getCurrentBalance(d, now);
             totalInvested += currentBal;
             totalInterest += (d.interestEarned || 0);
@@ -637,8 +719,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             totalWeightedRate += (currentBal * d.rate);
             typeMap[d.type] = (typeMap[d.type] || 0) + currentBal;
 
-            if (matDate >= now) {
+            if (!isMatured) {
                 activeCount++;
+                const matDate = new Date(d.maturityDate + 'T00:00:00');
                 const daysLeft = Math.ceil((matDate - now) / 86400000);
                 if (!nextMaturity || matDate < nextMaturity) {
                     nextMaturity = matDate;
@@ -801,7 +884,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const pct = (d.amount / maxAmt) * 100;
                     const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'rank-other';
                     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i+1}`;
-                    const isMatured = new Date(d.maturityDate + 'T00:00:00') < now;
+                    const isMatured = isDepositMatured(d.maturityDate);
                     const badgeColor = isMatured ? '#f59e0b' : '#10b981';
                     return `<div class="fin-deposit-item" onclick="showDepositModal(${d.id})">
                         <div class="fin-deposit-rank ${rankClass}">${medal}</div>
@@ -865,12 +948,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             const currentBal = getCurrentBalance(d);
             totalPrincipal += currentBal;
             totalMaturity += d.maturityAmount;
-            const isMatured = new Date(d.maturityDate) < new Date();
+            const isMatured = isDepositMatured(d.maturityDate);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="clickable" onclick="showDepositModal(${d.id})">${d.name}</td>
                 <td class="clickable" onclick="showCustomerDetails('${d.customer}')">${d.customer || '--'}</td>
-                <td><span class="badge" style="background: rgba(99,102,241,0.1)">${d.type}</span></td>
+                <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
                 <td>${d.accNo || '--'}</td>
                 <td>
                     ₹${currentBal.toLocaleString()}
@@ -901,29 +984,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     window.editDeposit = (id) => {
-        const d = deposits.find(dep => dep.id === id);
-        if (!d) return;
-
-        editId = id;
-        document.querySelector('#new-deposit h1').textContent = 'Edit Deposit';
-
-        document.getElementById('dep-customer').value = d.customer;
-        document.getElementById('dep-name').value = d.name;
-        document.getElementById('dep-type').value = d.type;
-        document.getElementById('dep-acc-no').value = d.accNo;
-        document.getElementById('dep-amount').value = d.amount;
-        document.getElementById('dep-rate').value = d.rate;
-        document.getElementById('dep-start').value = d.startDate;
-        document.getElementById('dep-months').value = d.months;
-        document.getElementById('dep-compounding').value = d.compounding;
-        document.getElementById('dep-payout').value = d.payout;
-        document.getElementById('dep-installment-day').value = d.installmentDay || '';
-
-        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-        document.querySelector('[data-view="new-deposit"]').classList.add('active');
-        views.forEach(v => v.style.display = 'none');
-        document.getElementById('new-deposit').style.display = 'block';
-        updateLivePreview();
+        openEditDepositModal(id);
     };
 
     window.deleteDeposit = (id) => {
@@ -931,7 +992,268 @@ document.addEventListener('DOMContentLoaded', async () => {
         deposits = deposits.filter(d => d.id !== id);
         localStorage.setItem('deposits', JSON.stringify(deposits));
         FolderStorage.saveToFile(deposits); // Sync to folder
+        if (document.getElementById('find-edit-deposit') && document.getElementById('find-edit-deposit').style.display !== 'none') {
+            renderFindEditDeposit();
+        }
         renderMaturityReport();
+        updateDashboard();
+    };
+
+    // --- FIND & EDIT DEPOSIT LOGIC ---
+    function renderFindEditDeposit() {
+        const queryInput = document.getElementById('search-deposit-query');
+        const typeSelect = document.getElementById('search-filter-type');
+        const statusSelect = document.getElementById('search-filter-status');
+        const clearBtn = document.getElementById('clear-search-btn');
+
+        const query = (queryInput?.value || '').trim().toLowerCase();
+        const typeFilter = typeSelect?.value || 'ALL';
+        const statusFilter = statusSelect?.value || 'ALL';
+
+        if (clearBtn) clearBtn.style.display = query ? 'block' : 'none';
+
+        const table = document.getElementById('find-deposit-table');
+        if (!table) return;
+        const tbody = table.querySelector('tbody');
+        let tfoot = table.querySelector('tfoot');
+        if (!tfoot) {
+            tfoot = document.createElement('tfoot');
+            table.appendChild(tfoot);
+        }
+        tbody.innerHTML = '';
+        tfoot.innerHTML = '';
+
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        const filtered = deposits.filter(d => {
+            const matchesQuery = !query ||
+                (d.customer && d.customer.toLowerCase().includes(query)) ||
+                (d.accNo && d.accNo.toLowerCase().includes(query)) ||
+                (d.name && d.name.toLowerCase().includes(query));
+
+            const matchesType = typeFilter === 'ALL' || d.type === typeFilter;
+
+            const isMatured = isDepositMatured(d.maturityDate);
+            const matchesStatus = statusFilter === 'ALL' ||
+                (statusFilter === 'ACTIVE' && !isMatured) ||
+                (statusFilter === 'MATURED' && isMatured);
+
+            return matchesQuery && matchesType && matchesStatus;
+        }).sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0));
+
+        const badge = document.getElementById('search-results-badge');
+        if (badge) {
+            badge.textContent = `${filtered.length} Deposit${filtered.length === 1 ? '' : 's'} Found`;
+        }
+
+        let totalPrincipal = 0;
+        let totalMaturity = 0;
+
+        filtered.forEach(d => {
+            const currentBal = getCurrentBalance(d);
+            totalPrincipal += currentBal;
+            totalMaturity += (d.maturityAmount || 0);
+            const isMatured = isDepositMatured(d.maturityDate);
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td><strong>${d.accNo || '--'}</strong></td>
+                <td class="clickable" onclick="showCustomerDetails('${(d.customer || '').replace(/'/g, "\\'")}')">${d.customer || '--'}</td>
+                <td class="clickable" onclick="showDepositModal(${d.id})">${d.name || '--'}</td>
+                <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
+                <td>₹${currentBal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}${d.type === 'RD' ? `<br><small style="color: var(--primary-light)">Paid: ${d.paidInstallments || 0}/${d.months}</small>` : ''}</td>
+                <td>${d.rate}%</td>
+                <td>${Calculations.formatDate(d.maturityDate)}</td>
+                <td style="font-weight: 600; color: var(--primary-light);">₹${(d.maturityAmount || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                <td><span class="badge ${isMatured ? 'badge-matured' : 'badge-active'}">${isMatured ? 'Matured' : 'Active'}</span></td>
+                <td style="text-align: right; white-space: nowrap;">
+                    <button class="btn btn-primary btn-sm" onclick="openEditDepositModal(${d.id})" style="padding: 5px 10px; font-size: 0.8rem; margin-right: 4px; display: inline-flex; align-items: center; gap: 4px;">
+                        <ion-icon src="lib/svg/create-outline.svg"></ion-icon> Edit
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="showDepositModal(${d.id})" style="padding: 5px 8px; font-size: 0.8rem; margin-right: 4px;">View</button>
+                    <button class="btn btn-sm" onclick="deleteDepositFromFind(${d.id})" style="padding: 5px 8px; font-size: 0.8rem; background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2);">Del</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        if (filtered.length > 0) {
+            tfoot.innerHTML = `
+                <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
+                    <td colspan="4" style="text-align: right;">SEARCH TOTALS:</td>
+                    <td>₹${totalPrincipal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                    <td colspan="2"></td>
+                    <td style="color: var(--primary-light);">₹${totalMaturity.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                    <td colspan="2"></td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-secondary); padding: 24px;">No matching deposits found. Try adjusting your search query or filters.</td></tr>';
+        }
+    }
+
+    // Attach search event listeners
+    const searchQueryInput = document.getElementById('search-deposit-query');
+    const searchTypeFilter = document.getElementById('search-filter-type');
+    const searchStatusFilter = document.getElementById('search-filter-status');
+    const clearSearchBtn = document.getElementById('clear-search-btn');
+
+    if (searchQueryInput) searchQueryInput.addEventListener('input', renderFindEditDeposit);
+    if (searchTypeFilter) searchTypeFilter.addEventListener('change', renderFindEditDeposit);
+    if (searchStatusFilter) searchStatusFilter.addEventListener('change', renderFindEditDeposit);
+    if (clearSearchBtn) {
+        clearSearchBtn.addEventListener('click', () => {
+            searchQueryInput.value = '';
+            renderFindEditDeposit();
+        });
+    }
+
+    window.resetSearchFilters = () => {
+        if (searchQueryInput) searchQueryInput.value = '';
+        if (searchTypeFilter) searchTypeFilter.value = 'ALL';
+        if (searchStatusFilter) searchStatusFilter.value = 'ALL';
+        renderFindEditDeposit();
+    };
+
+    window.openEditDepositModal = (id) => {
+        const d = deposits.find(dep => dep.id === id);
+        if (!d) return;
+
+        document.getElementById('edit-dep-id').value = d.id;
+        document.getElementById('edit-dep-customer').value = d.customer || '';
+        document.getElementById('edit-dep-name').value = d.name || '';
+        document.getElementById('edit-dep-type').value = d.type || 'FD';
+        document.getElementById('edit-dep-acc-no').value = d.accNo || '';
+        document.getElementById('edit-dep-amount').value = d.amount || 0;
+        document.getElementById('edit-dep-rate').value = d.rate || 0;
+        document.getElementById('edit-dep-start').value = d.startDate || '';
+        document.getElementById('edit-dep-months').value = d.months || 0;
+        document.getElementById('edit-dep-compounding').value = d.compounding !== undefined ? d.compounding : 4;
+        document.getElementById('edit-dep-payout').value = d.payout || 'maturity';
+        document.getElementById('edit-dep-installment-day').value = d.installmentDay || 1;
+
+        updateEditLivePreview();
+        document.getElementById('edit-deposit-modal').style.display = 'flex';
+    };
+
+    window.closeEditModal = () => {
+        document.getElementById('edit-deposit-modal').style.display = 'none';
+    };
+
+    const editPreviewFields = ['edit-dep-amount', 'edit-dep-rate', 'edit-dep-start', 'edit-dep-months', 'edit-dep-type', 'edit-dep-compounding'];
+    editPreviewFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateEditLivePreview);
+    });
+
+    function updateEditLivePreview() {
+        const amount = parseFloat(document.getElementById('edit-dep-amount').value) || 0;
+        const rate = parseFloat(document.getElementById('edit-dep-rate').value) || 0;
+        const start = document.getElementById('edit-dep-start').value;
+        const months = parseInt(document.getElementById('edit-dep-months').value) || 0;
+        const type = document.getElementById('edit-dep-type').value;
+        const compounding = parseInt(document.getElementById('edit-dep-compounding').value);
+
+        const compGroup = document.getElementById('edit-compounding-group');
+        const instGroup = document.getElementById('edit-installment-day-group');
+        const labelAmount = document.getElementById('edit-label-amount');
+
+        if (compGroup) compGroup.style.display = type === 'DD' ? 'none' : 'block';
+        if (instGroup && labelAmount) {
+            if (type === 'RD') {
+                instGroup.style.display = 'block';
+                labelAmount.textContent = 'Monthly Installment (₹)';
+            } else {
+                instGroup.style.display = 'none';
+                labelAmount.textContent = 'Principal Amount (₹)';
+            }
+        }
+
+        if (!start || months <= 0) {
+            document.getElementById('edit-preview-date').textContent = '--';
+            document.getElementById('edit-preview-interest').textContent = '₹0';
+            document.getElementById('edit-preview-maturity').textContent = '₹0';
+            return;
+        }
+
+        let details;
+        if (type === 'RD') {
+            details = Calculations.calculateRD(amount, rate, months, start);
+        } else if (type === 'DD') {
+            details = Calculations.calculateDD(amount);
+        } else {
+            details = Calculations.calculateMaturity(amount, rate, months, compounding);
+        }
+
+        const maturityDate = Calculations.getMaturityDate(start, months).toISOString().split('T')[0];
+
+        document.getElementById('edit-preview-date').textContent = Calculations.formatDate(maturityDate);
+        document.getElementById('edit-preview-interest').textContent = `₹${details.interestEarned.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+        document.getElementById('edit-preview-maturity').textContent = `₹${details.maturityAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+    }
+
+    const editDepositForm = document.getElementById('edit-deposit-form');
+    if (editDepositForm) {
+        editDepositForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const id = parseInt(document.getElementById('edit-dep-id').value);
+            const index = deposits.findIndex(d => d.id === id);
+            if (index === -1) return alert('Deposit not found.');
+
+            const existing = deposits[index];
+
+            const updatedData = {
+                ...existing,
+                customer: document.getElementById('edit-dep-customer').value,
+                name: document.getElementById('edit-dep-name').value,
+                type: document.getElementById('edit-dep-type').value,
+                accNo: document.getElementById('edit-dep-acc-no').value,
+                amount: parseFloat(document.getElementById('edit-dep-amount').value),
+                rate: parseFloat(document.getElementById('edit-dep-rate').value),
+                startDate: document.getElementById('edit-dep-start').value,
+                months: parseInt(document.getElementById('edit-dep-months').value),
+                compounding: parseInt(document.getElementById('edit-dep-compounding').value),
+                payout: document.getElementById('edit-dep-payout').value,
+                installmentDay: parseInt(document.getElementById('edit-dep-installment-day').value) || 1
+            };
+
+            let details;
+            if (updatedData.type === 'RD') {
+                details = Calculations.calculateRD(updatedData.amount, updatedData.rate, updatedData.months, updatedData.startDate);
+            } else if (updatedData.type === 'DD') {
+                details = Calculations.calculateDD(updatedData.amount);
+            } else {
+                details = Calculations.calculateMaturity(updatedData.amount, updatedData.rate, updatedData.months, updatedData.compounding);
+            }
+
+            updatedData.maturityAmount = details.maturityAmount;
+            updatedData.interestEarned = details.interestEarned;
+            updatedData.maturityDate = Calculations.getMaturityDate(updatedData.startDate, updatedData.months).toISOString().split('T')[0];
+
+            deposits[index] = updatedData;
+
+            localStorage.setItem('deposits', JSON.stringify(deposits));
+            FolderStorage.saveToFile(deposits);
+            updateAutocompleteSuggestions();
+
+            closeEditModal();
+            alert('Deposit updated successfully!');
+
+            renderFindEditDeposit();
+            updateDashboard();
+            if (document.getElementById('maturity-report').style.display !== 'none') {
+                renderMaturityReport();
+            }
+        });
+    }
+
+    window.deleteDepositFromFind = (id) => {
+        if (!confirm('Are you sure you want to delete this deposit record?')) return;
+        deposits = deposits.filter(d => d.id !== id);
+        localStorage.setItem('deposits', JSON.stringify(deposits));
+        FolderStorage.saveToFile(deposits);
+        renderFindEditDeposit();
         updateDashboard();
     };
 
@@ -1013,7 +1335,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const rdDeposits = deposits.filter(d => d.type === 'RD');
 
         rdDeposits.forEach(d => {
-            const isMatured = new Date(d.maturityDate) < new Date();
+            const isMatured = isDepositMatured(d.maturityDate);
             const txs = d.transactions || [];
             const pdCount = txs.length;
             
@@ -1109,7 +1431,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         ledgerResult.ledger.forEach(row => {
             const tr = document.createElement('tr');
             if (row.isInterest) {
-                tr.style.background = 'rgba(99,102,241,0.05)';
+                tr.style.background = 'rgba(243,112,35,0.08)';
                 tr.style.fontWeight = '500';
             }
             tr.innerHTML = `
@@ -1148,12 +1470,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         tfoot.innerHTML = '';
 
         filtered.forEach(d => {
-            const isMatured = new Date(d.maturityDate) < new Date();
+            const isMatured = isDepositMatured(d.maturityDate);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${d.accNo}</td>
                 <td class="clickable" onclick="showDepositModal(${d.id})">${d.name}</td>
-                <td><span class="badge" style="background: rgba(99,102,241,0.1)">${d.type}</span></td>
+                <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
                 <td>₹${getCurrentBalance(d).toLocaleString()}</td>
                 <td>₹${d.interestEarned.toLocaleString()}</td>
                 <td>${Calculations.formatDate(d.maturityDate)}</td>
@@ -1277,7 +1599,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!d) return;
 
         const currentBal = getCurrentBalance(d);
-        content.innerHTML = `
+        const modalContent = document.getElementById('modal-content');
+        if (!modalContent) return;
+        modalContent.innerHTML = `
             <div class="detail-row"><span class="detail-label">Customer Name</span><span class="detail-value">${d.customer}</span></div>
             <div class="detail-row"><span class="detail-label">Reference Name</span><span class="detail-value">${d.name}</span></div>
             <div class="detail-row"><span class="detail-label">Account Number</span><span class="detail-value">${d.accNo}</span></div>
@@ -1295,7 +1619,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (d.type === 'RD') {
             const paid = d.paidInstallments || 0;
             const total = d.months;
-            content.innerHTML += `
+            modalContent.innerHTML += `
                 <div style="margin-top: 20px; padding: 15px; background: rgba(99, 102, 241, 0.05); border-radius: 8px; border: 1px solid var(--border);">
                     <h4 style="margin-bottom: 10px; color: var(--primary-light);">RD Installment Status</h4>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -1342,6 +1666,139 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     window.closeModal = () => {
         document.getElementById('deposit-modal').style.display = 'none';
+    };
+
+    window.showNextMaturityDetails = () => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const upcoming = deposits.filter(d => {
+            const matDate = new Date(d.maturityDate + "T00:00:00");
+            return matDate >= today;
+        }).sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate));
+
+        if (upcoming.length === 0) {
+            alert('No upcoming maturities found.');
+            return;
+        }
+
+        const earliestDate = upcoming[0].maturityDate;
+        const nextDeposits = upcoming.filter(d => d.maturityDate === earliestDate);
+
+        // Switch View to Upcoming Maturities
+        const navItems = document.querySelectorAll('.sidebar .nav-item');
+        const views = document.querySelectorAll('.view');
+        navItems.forEach(i => i.classList.remove('active'));
+        const targetNav = document.querySelector('[data-view="upcoming-maturities"]');
+        if (targetNav) targetNav.classList.add('active');
+
+        views.forEach(v => v.style.display = 'none');
+        const targetView = document.getElementById('upcoming-maturities');
+        if (targetView) targetView.style.display = 'block';
+
+        // Update active filter button to "Next Maturity"
+        document.querySelectorAll('.filter-mat').forEach(b => {
+            b.classList.remove('btn-primary');
+            b.classList.add('btn-secondary');
+        });
+        const nextBtn = document.getElementById('filter-mat-next');
+        if (nextBtn) {
+            nextBtn.classList.remove('btn-secondary');
+            nextBtn.classList.add('btn-primary');
+        }
+
+        // Render table with ONLY the next maturity deposit(s)
+        renderUpcomingMaturities('next');
+
+        // Immediately open the deposit details modal for that next maturing FD
+        if (nextDeposits.length > 0) {
+            showNextMaturityModal(0);
+        }
+    };
+
+    window.showNextMaturityModal = (selectedIndex = 0) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const upcoming = deposits.filter(d => {
+            const matDate = new Date(d.maturityDate + "T00:00:00");
+            return matDate >= today;
+        }).sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate));
+
+        if (upcoming.length === 0) return;
+
+        const earliestDate = upcoming[0].maturityDate;
+        const nextDeposits = upcoming.filter(d => d.maturityDate === earliestDate);
+
+        if (selectedIndex < 0) selectedIndex = 0;
+        if (selectedIndex >= nextDeposits.length) selectedIndex = nextDeposits.length - 1;
+
+        const d = nextDeposits[selectedIndex];
+        if (!d) return;
+
+        const currentBal = getCurrentBalance(d);
+        const modalContent = document.getElementById('modal-content');
+        if (!modalContent) return;
+
+        const daysLeft = Math.ceil((new Date(d.maturityDate + 'T00:00:00') - today) / 86400000);
+        const daysText = daysLeft === 0 ? 'Matures Today!' : daysLeft === 1 ? '1 day remaining' : `${daysLeft} days remaining`;
+
+        let headerHtml = '';
+        if (nextDeposits.length > 1) {
+            headerHtml = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 8px 12px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px;">
+                    <span style="font-weight: 700; color: #f59e0b; font-size: 0.85rem;">⚡ Next Maturity (${selectedIndex + 1} of ${nextDeposits.length}) — ${daysText}</span>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn btn-secondary btn-sm" onclick="showNextMaturityModal(${selectedIndex - 1})" ${selectedIndex === 0 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} style="padding: 3px 8px; font-size: 0.75rem;">◀ Prev</button>
+                        <button class="btn btn-secondary btn-sm" onclick="showNextMaturityModal(${selectedIndex + 1})" ${selectedIndex === nextDeposits.length - 1 ? 'disabled style="opacity:0.4;cursor:not-allowed;"' : ''} style="padding: 3px 8px; font-size: 0.75rem;">Next ▶</button>
+                    </div>
+                </div>
+            `;
+        } else {
+            headerHtml = `
+                <div style="display: inline-block; margin-bottom: 15px; padding: 5px 12px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: #f59e0b;">
+                    ⚡ Next Maturing Deposit — ${daysText} (${Calculations.formatDate(d.maturityDate)})
+                </div>
+            `;
+        }
+
+        modalContent.innerHTML = `
+            ${headerHtml}
+            <div class="detail-row"><span class="detail-label">Customer Name</span><span class="detail-value">${d.customer}</span></div>
+            <div class="detail-row"><span class="detail-label">Reference Name</span><span class="detail-value">${d.name}</span></div>
+            <div class="detail-row"><span class="detail-label">Account Number</span><span class="detail-value">${d.accNo || '--'}</span></div>
+            <div class="detail-row"><span class="detail-label">Deposit Type</span><span class="detail-value">${d.type}</span></div>
+            <div class="detail-row"><span class="detail-label">${d.type === 'RD' ? 'Monthly Installment' : 'Principal Amount'}</span><span class="detail-value">₹${d.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span></div>
+            ${d.type === 'RD' ? `<div class="detail-row"><span class="detail-label">Current Balance</span><span class="detail-value" style="font-weight:700; color:var(--accent);">₹${currentBal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span></div>` : ''}
+            <div class="detail-row"><span class="detail-label">Interest Rate</span><span class="detail-value">${d.rate}%</span></div>
+            <div class="detail-row"><span class="detail-label">Start Date</span><span class="detail-value">${Calculations.formatDate(d.startDate)}</span></div>
+            <div class="detail-row"><span class="detail-label">Duration</span><span class="detail-value">${d.months} Months</span></div>
+            <div class="detail-row"><span class="detail-label">Maturity Date</span><span class="detail-value" style="font-weight: 700; color: #f59e0b;">${Calculations.formatDate(d.maturityDate)}</span></div>
+            <div class="detail-row"><span class="detail-label">Interest Earned</span><span class="detail-value" style="color: var(--accent);">₹${d.interestEarned.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span></div>
+            <div class="detail-row"><span class="detail-label">Maturity Amount</span><span class="detail-value" style="color: var(--primary-light); font-weight: 700;">₹${d.maturityAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</span></div>
+        `;
+
+        if (d.type === 'RD') {
+            const paid = d.paidInstallments || 0;
+            const total = d.months;
+            modalContent.innerHTML += `
+                <div style="margin-top: 20px; padding: 15px; background: rgba(99, 102, 241, 0.05); border-radius: 8px; border: 1px solid var(--border);">
+                    <h4 style="margin-bottom: 10px; color: var(--primary-light);">RD Installment Status</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <span>Paid: <strong>${paid}</strong> / ${total} Months</span>
+                        <div style="flex: 1; height: 8px; background: var(--border); border-radius: 4px; margin: 0 15px; position: relative; overflow: hidden;">
+                            <div style="position: absolute; top: 0; left: 0; height: 100%; width: ${(paid / total) * 100}%; background: var(--primary); transition: width 0.3s;"></div>
+                        </div>
+                        <span style="font-weight: 700;">${Math.round((paid / total) * 100)}%</span>
+                    </div>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-sm" onclick="recordRDAmount(${d.id})" style="background: var(--primary); color: #fff; font-size: 0.8rem;">+ Mark Month Paid</button>
+                        <button class="btn btn-sm" onclick="resetRDAmount(${d.id})" style="background: rgba(239, 68, 68, 0.1); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.8rem;">Reset</button>
+                    </div>
+                </div>
+            `;
+        }
+        document.getElementById('deposit-modal').style.display = 'flex';
     };
 
     function renderReferenceReport() {
@@ -1433,12 +1890,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         tfoot.innerHTML = '';
 
         filtered.forEach(d => {
-            const isMatured = new Date(d.maturityDate) < new Date();
+            const isMatured = isDepositMatured(d.maturityDate);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="clickable" onclick="showCustomerDetails('${d.customer.replace(/'/g, "\\'")}')">${d.customer}</td>
                 <td>${d.accNo}</td>
-                <td><span class="badge" style="background: rgba(99,102,241,0.1)">${d.type}</span></td>
+                <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
                 <td>₹${getCurrentBalance(d).toLocaleString()}</td>
                 <td>₹${d.interestEarned.toLocaleString()}</td>
                 <td>${Calculations.formatDate(d.maturityDate)}</td>
@@ -1682,7 +2139,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             <tbody>
                 ${Object.keys(consolidated).sort().reverse().map(fy => `
                     <tr class="clickable" onclick="showInterestDetails('${fy}')">
-                        <td>FY ${fy} <small style="color: var(--primary-light); margin-left:10px;">(Click to view details)</small></td>
+                        <td>FY ${fy} <small style="margin-left:10px; font-weight: 500; opacity: 0.88;">(Click to view details)</small></td>
                         <td>₹${consolidated[fy].toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     </tr>
                 `).join('')}
@@ -2087,7 +2544,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 <tr>
                                     <td>${d.accNo}</td>
                                     <td class="clickable" onclick="showCustomerDetails('${d.customer}')">${d.customer}</td>
-                                    ${type === 'All' ? `<td><span class="badge" style="background: rgba(99,102,241,0.1)">${d.type}</span></td>` : ''}
+                                    ${type === 'All' ? `<td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>` : ''}
                                     <td>₹${getCurrentBalance(d).toLocaleString()}</td>
                                     <td>${d.rate}%</td>
                                     <td>${Calculations.formatDate(d.startDate)}</td>
@@ -2721,7 +3178,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 <td>${d.accNo}</td>
                 <td class="clickable" onclick="showCustomerDetails('${d.customer}')">${d.customer}</td>
                 <td class="clickable" onclick="showDepositModal(${d.id})">${d.name}</td>
-                <td><span class="badge" style="background: rgba(99,102,241,0.1)">${d.type}</span></td>
+                <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
                 <td>₹${d.amount.toLocaleString()}</td>
                 <td>₹${d.interestEarned.toLocaleString()}</td>
                 <td>${Calculations.formatDate(d.maturityDate)}</td>
