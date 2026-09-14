@@ -3389,6 +3389,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         switchView('monthly-report', true, { monthKey: formattedKey });
     };
 
+    // Mobile Exit Prevention Toast & Helper
+    let exitWarningShown = false;
+    let exitWarningTimer = null;
+
+    function showExitToast() {
+        let toast = document.getElementById('mobile-exit-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'mobile-exit-toast';
+            toast.style.position = 'fixed';
+            toast.style.bottom = '40px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.background = 'rgba(23, 23, 23, 0.92)';
+            toast.style.color = '#fff';
+            toast.style.padding = '10px 22px';
+            toast.style.borderRadius = '30px';
+            toast.style.fontSize = '0.9rem';
+            toast.style.fontWeight = '500';
+            toast.style.zIndex = '999999';
+            toast.style.boxShadow = '0 6px 20px rgba(0,0,0,0.35)';
+            toast.style.pointerEvents = 'none';
+            toast.style.transition = 'opacity 0.3s ease';
+            toast.textContent = 'Press back again to exit';
+            document.body.appendChild(toast);
+        }
+        toast.style.opacity = '1';
+        clearTimeout(exitWarningTimer);
+        exitWarningTimer = setTimeout(() => {
+            if (toast) toast.style.opacity = '0';
+            exitWarningShown = false;
+        }, 2000);
+    }
+
     // Global Mobile & Browser Back Button / History Navigation Handler
     window.addEventListener('popstate', (e) => {
         // Priority 1: If password login modal is active, do not allow bypassing
@@ -3430,7 +3464,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             return; // Modal closed, remain on the view where the modal was open
         }
 
-        // Priority 4: Navigate to the previous view from history state
+        // Priority 4: If at base entry (dashboard home screen)
+        if (e.state && e.state.isBase) {
+            if (!exitWarningShown) {
+                exitWarningShown = true;
+                showExitToast();
+                // Re-push dashboard state so the next back press within 2s exits
+                history.pushState({ view: 'dashboard', isRoot: true }, '', '#dashboard');
+                return;
+            } else {
+                // Second back press within 2s -> let user exit
+                history.back();
+                return;
+            }
+        }
+
+        // Priority 5: Navigate to the previous view from history state
         const targetView = (e.state && e.state.view) ? e.state.view : 'dashboard';
         const extraData = e.state ? e.state.extraData : null;
 
@@ -3444,11 +3493,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         isNavigatingHistory = false;
     });
 
-    // Initialize initial route & history state
+    // Initialize initial route & dual-state history anchor for mobile safety
     const initialHash = window.location.hash.replace('#', '');
     const validViewEl = document.getElementById(initialHash);
     const startView = (validViewEl && validViewEl.classList.contains('view')) ? initialHash : 'dashboard';
-    history.replaceState({ view: startView, isRoot: true }, '', '#' + startView);
+    
+    // Base root anchor prevents immediate app exit on back press
+    history.replaceState({ view: startView, isBase: true }, '', '#home');
+    history.pushState({ view: startView, isRoot: true }, '', '#' + startView);
     currentActiveView = startView;
 
     // Initialize - Deferred for speed
