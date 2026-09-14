@@ -660,7 +660,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         let totalProceeds = 0;
 
-        filtered.forEach(d => {
+        filtered.forEach((d, idx) => {
             totalProceeds += d.maturityAmount;
             const tr = document.createElement('tr');
             tr.className = 'clickable';
@@ -668,6 +668,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tr.title = 'Click row to view deposit details';
             tr.onclick = () => showDepositModal(d.id);
             tr.innerHTML = `
+                <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                 <td style="font-weight: 600;">${d.customer}</td>
                 <td style="font-weight: 600; color: var(--primary-light);">${d.name}</td>
                 <td>${Calculations.formatDate(d.maturityDate)}</td>
@@ -684,13 +685,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (filtered.length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td colspan="3" style="text-align: right;">Total Upcoming Proceeds:</td>
+                    <td colspan="4" style="text-align: right;">Total Upcoming Proceeds:</td>
                     <td style="color: var(--accent);">₹${totalProceeds.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     <td></td>
                 </tr>
             `;
         } else {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">No deposits maturing in this period.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No deposits maturing in this period.</td></tr>';
         }
     }
 
@@ -951,13 +952,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         let totalPrincipal = 0;
         let totalMaturity = 0;
 
-        sorted.forEach(d => {
+        sorted.forEach((d, idx) => {
             const currentBal = getCurrentBalance(d);
             totalPrincipal += currentBal;
             totalMaturity += d.maturityAmount;
             const isMatured = isDepositMatured(d.maturityDate);
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                 <td class="clickable" onclick="showDepositModal(${d.id})">${d.name}</td>
                 <td class="clickable" onclick="showCustomerDetails('${d.customer}')">${d.customer || '--'}</td>
                 <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
@@ -980,7 +982,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (sorted.length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td colspan="4" style="text-align: right;">TOTAL PORTFOLIO:</td>
+                    <td colspan="5" style="text-align: right;">TOTAL PORTFOLIO:</td>
                     <td>₹${totalPrincipal.toLocaleString()}</td>
                     <td></td>
                     <td style="color: var(--primary-light);">₹${totalMaturity.toLocaleString()}</td>
@@ -1057,7 +1059,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let totalPrincipal = 0;
         let totalMaturity = 0;
 
-        filtered.forEach(d => {
+        filtered.forEach((d, idx) => {
             const currentBal = getCurrentBalance(d);
             totalPrincipal += currentBal;
             totalMaturity += (d.maturityAmount || 0);
@@ -1065,6 +1067,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                 <td><strong>${d.accNo || '--'}</strong></td>
                 <td class="clickable" onclick="showCustomerDetails('${(d.customer || '').replace(/'/g, "\\'")}')">${d.customer || '--'}</td>
                 <td class="clickable" onclick="showDepositModal(${d.id})">${d.name || '--'}</td>
@@ -1088,7 +1091,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (filtered.length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td colspan="4" style="text-align: right;">SEARCH TOTALS:</td>
+                    <td colspan="5" style="text-align: right;">SEARCH TOTALS:</td>
                     <td>₹${totalPrincipal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     <td colspan="2"></td>
                     <td style="color: var(--primary-light);">₹${totalMaturity.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
@@ -1096,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </tr>
             `;
         } else {
-            tbody.innerHTML = '<tr><td colspan="10" style="text-align: center; color: var(--text-secondary); padding: 24px;">No matching deposits found. Try adjusting your search query or filters.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; color: var(--text-secondary); padding: 24px;">No matching deposits found. Try adjusting your search query or filters.</td></tr>';
         }
     }
 
@@ -1341,7 +1344,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const rdDeposits = deposits.filter(d => d.type === 'RD');
 
-        rdDeposits.forEach(d => {
+        rdDeposits.forEach((d, idx) => {
             const isMatured = isDepositMatured(d.maturityDate);
             const txs = d.transactions || [];
             const pdCount = txs.length;
@@ -1356,6 +1359,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                 <td><strong>${d.accNo || '--'}</strong><br><small class="text-secondary">${d.name}</small></td>
                 <td>${d.customer}</td>
                 <td>₹${d.amount.toLocaleString('en-IN')}</td>
@@ -1369,7 +1373,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         if (rdDeposits.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 20px;">No Recurring Deposits Found.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 20px;">No Recurring Deposits Found.</td></tr>';
         }
     };
 
@@ -1476,10 +1480,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         tbody.innerHTML = '';
         tfoot.innerHTML = '';
 
-        filtered.forEach(d => {
+        filtered.forEach((d, idx) => {
             const isMatured = isDepositMatured(d.maturityDate);
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                 <td>${d.accNo}</td>
                 <td class="clickable" onclick="showDepositModal(${d.id})">${d.name}</td>
                 <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
@@ -1494,7 +1499,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (filtered.length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td colspan="3" style="text-align: right;">Customer Totals:</td>
+                    <td colspan="4" style="text-align: right;">Customer Totals:</td>
                     <td>₹${totalInvested.toLocaleString()}</td>
                     <td>₹${totalInterest.toLocaleString()}</td>
                     <td></td>
@@ -1838,7 +1843,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let grandMaturity = 0;
         let totalCount = 0;
 
-        Object.keys(grouped).sort().forEach(name => {
+        Object.keys(grouped).sort().forEach((name, idx) => {
             const g = grouped[name];
             grandPrincipal += g.totalPrincipal;
             grandInterest += g.totalInterest;
@@ -1848,6 +1853,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const avgRate = g.totalPrincipal > 0 ? (g.weightedRateSum / g.totalPrincipal) : 0;
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                 <td style="font-weight: 600;" class="clickable" onclick="showReferenceDetails('${name.replace(/'/g, "\\'")}')">${name}</td>
                 <td>${g.count}</td>
                 <td>₹${g.totalPrincipal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
@@ -1861,7 +1867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (Object.keys(grouped).length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td style="text-align: right;">Grand Total:</td>
+                    <td colspan="2" style="text-align: right;">Grand Total:</td>
                     <td>${totalCount}</td>
                     <td>₹${grandPrincipal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     <td></td>
@@ -1870,7 +1876,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </tr>
             `;
         } else {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No data available.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No data available.</td></tr>';
         }
     }
 
@@ -1896,10 +1902,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         tbody.innerHTML = '';
         tfoot.innerHTML = '';
 
-        filtered.forEach(d => {
+        filtered.forEach((d, idx) => {
             const isMatured = isDepositMatured(d.maturityDate);
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                 <td class="clickable" onclick="showCustomerDetails('${d.customer.replace(/'/g, "\\'")}')">${d.customer}</td>
                 <td>${d.accNo}</td>
                 <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
@@ -1914,7 +1921,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (filtered.length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td colspan="3" style="text-align: right;">Reference Totals:</td>
+                    <td colspan="4" style="text-align: right;">Reference Totals:</td>
                     <td>₹${totalInvested.toLocaleString()}</td>
                     <td>₹${totalInterest.toLocaleString()}</td>
                     <td></td>
@@ -2139,13 +2146,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         table.innerHTML = `
             <thead>
                 <tr>
+                    <th style="width: 55px; text-align: center;">Sr No</th>
                     <th>Financial Year (Apr-Mar)</th>
                     <th>Interest Accrued (Est.)</th>
                 </tr>
             </thead>
             <tbody>
-                ${Object.keys(consolidated).sort().reverse().map(fy => `
+                ${Object.keys(consolidated).sort().reverse().map((fy, idx) => `
                     <tr class="clickable" onclick="showInterestDetails('${fy}')">
+                        <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                         <td>FY ${fy} <small style="margin-left:10px; font-weight: 500; opacity: 0.88;">(Click to view details)</small></td>
                         <td>₹${consolidated[fy].toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     </tr>
@@ -2153,7 +2162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </tbody>
             <tfoot>
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td style="text-align: right;">Lifetime Interest:</td>
+                    <td colspan="2" style="text-align: right;">Lifetime Interest:</td>
                     <td style="color: var(--accent);">₹${grandTotalInterest.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                 </tr>
             </tfoot>
@@ -2182,13 +2191,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         table.innerHTML = `
             <thead>
                 <tr>
+                    <th style="width: 55px; text-align: center;">Sr No</th>
                     <th>Customer Name</th>
                     <th>Total Interest Accrued (All Deposits)</th>
                 </tr>
             </thead>
             <tbody>
-                ${sortedCustomers.map(customer => `
+                ${sortedCustomers.map((customer, idx) => `
                     <tr class="clickable" onclick="showCustomerDetails('${customer}')">
+                        <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                         <td>${customer}</td>
                         <td>₹${customerInterest[customer].toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     </tr>
@@ -2196,7 +2207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             </tbody>
             <tfoot>
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td style="text-align: right;">Overall Total:</td>
+                    <td colspan="2" style="text-align: right;">Overall Total:</td>
                     <td style="color: var(--accent);">₹${grandTotal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                 </tr>
             </tfoot>
@@ -2270,12 +2281,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         let totalPrincipal = 0;
         let totalMaturity = 0;
 
-        filtered.forEach(d => {
+        filtered.forEach((d, idx) => {
             const currentBal = getCurrentBalance(d);
             totalPrincipal += currentBal;
             totalMaturity += d.maturityAmount;
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                 <td>${d.accNo || '--'}</td>
                 <td>${d.customer || '--'}</td>
                 <td>${d.name}</td>
@@ -2290,14 +2302,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (filtered.length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td colspan="4" style="text-align: right;">Total Due:</td>
+                    <td colspan="5" style="text-align: right;">Total Due:</td>
                     <td>₹${totalPrincipal.toLocaleString()}</td>
                     <td></td>
                     <td style="color: var(--primary-light);">₹${totalMaturity.toLocaleString()}</td>
                 </tr>
             `;
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No deposits due upto this date.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-secondary);">No deposits due upto this date.</td></tr>';
         }
     }
 
@@ -2536,6 +2548,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <table>
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Acc No</th>
                                 <th>Customer</th>
                                 ${type === 'All' ? '<th>Type</th>' : ''}
@@ -2547,8 +2560,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                             </tr>
                         </thead>
                         <tbody>
-                            ${g.deposits.sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate)).map(d => `
+                            ${g.deposits.sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate)).map((d, idx) => `
                                 <tr>
+                                    <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${idx + 1}</td>
                                     <td>${d.accNo}</td>
                                     <td class="clickable" onclick="showCustomerDetails('${d.customer}')">${d.customer}</td>
                                     ${type === 'All' ? `<td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>` : ''}
@@ -2562,7 +2576,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         </tbody>
                         <tfoot>
                             <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                                <td colspan="${type === 'All' ? 3 : 2}" style="text-align: right;">Group Totals:</td>
+                                <td colspan="${type === 'All' ? 4 : 3}" style="text-align: right;">Group Totals:</td>
                                 <td>₹${g.totalAmount.toLocaleString()}</td>
                                 <td colspan="3"></td>
                                 <td style="color: var(--primary-light);">₹${g.totalMaturity.toLocaleString()}</td>
@@ -2834,6 +2848,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const isOngoing = new Date(d.startDate) <= new Date(toDate) && new Date(d.maturityDate) >= new Date(fromDate);
 
                 tr.innerHTML = `
+                    <td style="text-align: center; font-weight: 700; color: var(--text-secondary);">${count}</td>
                     <td class="clickable" onclick="showCustomerDetails('${d.customer}')">${d.customer}</td>
                     <td class="clickable" onclick="showDepositModal(${d.id})">${d.name}</td>
                     <td>₹${getCurrentBalance(d).toLocaleString()}</td>
@@ -2848,12 +2863,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (count > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td colspan="5" style="text-align: right;">Total Interest for Period:</td>
+                    <td colspan="6" style="text-align: right;">Total Interest for Period:</td>
                     <td style="color: var(--accent);">₹${totalInterest.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                 </tr>
             `;
         } else {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No interest accrued during this period.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No interest accrued during this period.</td></tr>';
         }
 
         reportCard.scrollIntoView({ behavior: 'smooth' });

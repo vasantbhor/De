@@ -652,6 +652,7 @@
                     <table id="find-deposit-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Account No</th>
                                 <th>Customer Name</th>
                                 <th>Deposit Name / Ref</th>
@@ -683,6 +684,7 @@
                     <table id="manage-rd-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Account No</th>
                                 <th>Customer Name</th>
                                 <th>Installment (₹)</th>
@@ -721,6 +723,7 @@
                     <table id="upcoming-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Customer</th>
                                 <th>Deposit Name</th>
                                 <th>Maturity Date (DD/MM/YYYY)</th>
@@ -739,12 +742,12 @@
         <section id="maturity-report" class="view" style="display: none;">
             <div class="header header-flex">
                 <div>
-                    <h1>FD Maturity Report</h1>
-                    <p>Tracking upcoming maturities and proceeds.</p>
+                    <h1>Maturity Report</h1>
+                    <p>All deposits sorted by maturity date.</p>
                 </div>
                 <div class="header-actions">
-                    <button class="btn" style="background: var(--primary); color: #fff;"
-                        onclick="downloadAllDepositsPDF()">
+                    <button class="btn" style="background: #fff; color: var(--primary);"
+                        onclick="downloadMaturityReportPDF()">
                         <ion-icon src="lib/svg/download-outline.svg"></ion-icon> DOWNLOAD PDF
                     </button>
                     <button class="btn" style="background: #22c55e; color: #fff;"
@@ -758,6 +761,7 @@
                     <table id="maturity-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Name</th>
                                 <th>Customer</th>
                                 <th>Type</th>
@@ -809,6 +813,7 @@
                     <table id="periodic-interest-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Customer</th>
                                 <th>Deposit Name</th>
                                 <th>Principal</th>
@@ -869,6 +874,7 @@
                     <table id="customer-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Customer Name</th>
                                 <th>Total Deposits</th>
                                 <th>Total Principal</th>
@@ -910,6 +916,7 @@
                     <table id="customer-details-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Account No</th>
                                 <th>Deposit Name</th>
                                 <th>Type</th>
@@ -948,6 +955,7 @@
                     <table id="due-report-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Acc No</th>
                                 <th>Customer</th>
                                 <th>Deposit</th>
@@ -1009,6 +1017,7 @@
                     <table id="reference-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Reference Name</th>
                                 <th>Total Deposits</th>
                                 <th>Total Principal</th>
@@ -1054,6 +1063,7 @@
                     <table id="reference-details-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Customer</th>
                                 <th>Account No</th>
                                 <th>Type</th>
@@ -1088,6 +1098,7 @@
                     <table id="monthly-details-table">
                         <thead>
                             <tr>
+                                <th style="width: 55px; text-align: center;">Sr No</th>
                                 <th>Account No</th>
                                 <th>Customer</th>
                                 <th>Deposit Name</th>
