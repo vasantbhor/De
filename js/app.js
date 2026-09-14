@@ -164,56 +164,121 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadedLibraries.add(lib);
     }
 
+    // Current Active View tracker & Navigation System
+    let currentActiveView = 'dashboard';
+    let isNavigatingHistory = false;
+
+    function switchView(viewId, pushHistory = true, extraData = null) {
+        if (!viewId) return;
+
+        // Auto close mobile sidebar drawer
+        const sidebarEl = document.querySelector('.sidebar');
+        const overlayEl = document.getElementById('sidebar-overlay');
+        if (sidebarEl && sidebarEl.classList.contains('mobile-open')) {
+            sidebarEl.classList.remove('mobile-open');
+            if (overlayEl) overlayEl.classList.remove('active');
+        }
+
+        // Close any open modals when switching views
+        const depModal = document.getElementById('deposit-modal');
+        const editModal = document.getElementById('edit-deposit-modal');
+        const rdModal = document.getElementById('rd-ledger-modal');
+        if (depModal) depModal.style.display = 'none';
+        if (editModal) editModal.style.display = 'none';
+        if (rdModal) {
+            rdModal.style.display = 'none';
+            currentRdAectId = null;
+        }
+
+        // Update Active Nav
+        navItems.forEach(i => {
+            if (i.getAttribute('data-view') === viewId) {
+                i.classList.add('active');
+            } else {
+                i.classList.remove('active');
+            }
+        });
+
+        // Switch View
+        views.forEach(v => v.style.display = 'none');
+        const targetView = document.getElementById(viewId);
+        if (targetView) {
+            targetView.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+
+        // Handle History State
+        if (pushHistory && !isNavigatingHistory) {
+            if (history.state && history.state.sidebar) {
+                history.replaceState({ view: viewId, extraData: extraData }, '', '#' + viewId);
+            } else if (currentActiveView !== viewId || extraData) {
+                history.pushState({ view: viewId, extraData: extraData }, '', '#' + viewId);
+            }
+        }
+        currentActiveView = viewId;
+
+        // Render View Content
+        if (viewId === 'dashboard') updateDashboard();
+        if (viewId === 'find-edit-deposit') renderFindEditDeposit();
+        if (viewId === 'manage-rd') renderManageRD();
+        if (viewId === 'maturity-report') renderMaturityReport();
+        if (viewId === 'upcoming-maturities') {
+            const days = (extraData && extraData.days !== undefined) ? extraData.days : 30;
+            renderUpcomingMaturities(days);
+            document.querySelectorAll('.filter-mat').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-secondary');
+            });
+            const dBtn = document.querySelector(`.filter-mat[data-days="${days}"]`) || document.getElementById('filter-mat-next');
+            if (dBtn) {
+                dBtn.classList.remove('btn-secondary');
+                dBtn.classList.add('btn-primary');
+            }
+        }
+        if (viewId === 'customer-report') renderCustomerReport();
+        if (viewId === 'customer-details' && extraData && extraData.customer) {
+            showCustomerDetails(extraData.customer, false);
+        }
+        if (viewId === 'interest-report') renderInterestReport();
+        if (viewId === 'due-report') {
+            const today = new Date().toISOString().split('T')[0];
+            const dateInput = document.getElementById('due-upto-date');
+            if (!dateInput.value) dateInput.value = today;
+            renderDueReport(dateInput.value);
+        }
+        if (viewId === 'type-report') renderTypeReport();
+        if (viewId === 'reference-report') renderReferenceReport();
+        if (viewId === 'reference-details' && extraData && extraData.reference) {
+            showReferenceDetails(extraData.reference, false);
+        }
+        if (viewId === 'monthly-report') {
+            renderMonthlyReport(extraData && extraData.monthKey ? extraData.monthKey : null);
+        }
+        if (viewId === 'settings') renderSettings();
+    }
+
+    window.switchView = switchView;
+    window.showDashboard = () => switchView('dashboard');
+    window.handleCustomerBack = () => {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            switchView('customer-report');
+        }
+    };
+    window.handleReferenceBack = () => {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            switchView('reference-report');
+        }
+    };
+
     // Navigation Switcher
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             const viewId = item.getAttribute('data-view');
-
-            // Auto close mobile sidebar drawer
-            const sidebarEl = document.querySelector('.sidebar');
-            const overlayEl = document.getElementById('sidebar-overlay');
-            if (sidebarEl && sidebarEl.classList.contains('mobile-open')) {
-                sidebarEl.classList.remove('mobile-open');
-                if (overlayEl) overlayEl.classList.remove('active');
-            }
-
-            // Update Active Nav
-            navItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-
-            // Switch View
-            views.forEach(v => v.style.display = 'none');
-            const targetView = document.getElementById(viewId);
-            targetView.style.display = 'block';
-
-            if (viewId === 'dashboard') updateDashboard();
-            if (viewId === 'find-edit-deposit') renderFindEditDeposit();
-            if (viewId === 'manage-rd') renderManageRD();
-            if (viewId === 'maturity-report') renderMaturityReport();
-            if (viewId === 'upcoming-maturities') {
-                renderUpcomingMaturities(30); // Default 30
-                document.querySelectorAll('.filter-mat').forEach(b => {
-                    b.classList.remove('btn-primary');
-                    b.classList.add('btn-secondary');
-                });
-                const d30Btn = document.querySelector('.filter-mat[data-days="30"]');
-                if (d30Btn) {
-                    d30Btn.classList.remove('btn-secondary');
-                    d30Btn.classList.add('btn-primary');
-                }
-            }
-            if (viewId === 'customer-report') renderCustomerReport();
-            if (viewId === 'interest-report') renderInterestReport();
-            if (viewId === 'due-report') {
-                const today = new Date().toISOString().split('T')[0];
-                const dateInput = document.getElementById('due-upto-date');
-                if (!dateInput.value) dateInput.value = today;
-                renderDueReport(dateInput.value);
-            }
-            if (viewId === 'type-report') renderTypeReport();
-            if (viewId === 'reference-report') renderReferenceReport();
-            if (viewId === 'monthly-report') renderMonthlyReport();
-            if (viewId === 'settings') renderSettings();
+            switchView(viewId);
         });
     });
 
@@ -435,13 +500,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (mobileToggleBtn && sidebarOverlay) {
         mobileToggleBtn.addEventListener('click', () => {
-            sidebar.classList.toggle('mobile-open');
+            const isOpen = sidebar.classList.toggle('mobile-open');
             sidebarOverlay.classList.toggle('active');
+            if (isOpen) {
+                history.pushState({ sidebar: true, view: currentActiveView }, '', '#menu');
+            } else {
+                if (history.state && history.state.sidebar) {
+                    history.back();
+                }
+            }
         });
 
         sidebarOverlay.addEventListener('click', () => {
             sidebar.classList.remove('mobile-open');
             sidebarOverlay.classList.remove('active');
+            if (history.state && history.state.sidebar) {
+                history.back();
+            }
         });
     }
 
@@ -1145,10 +1220,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         updateEditLivePreview();
         document.getElementById('edit-deposit-modal').style.display = 'flex';
+        history.pushState({ modal: 'edit-deposit-modal', view: currentActiveView }, '', '#modal-edit');
     };
 
     window.closeEditModal = () => {
-        document.getElementById('edit-deposit-modal').style.display = 'none';
+        const modal = document.getElementById('edit-deposit-modal');
+        if (modal && modal.style.display !== 'none') {
+            modal.style.display = 'none';
+            if (history.state && history.state.modal === 'edit-deposit-modal') {
+                history.back();
+            }
+        }
     };
 
     const editPreviewFields = ['edit-dep-amount', 'edit-dep-rate', 'edit-dep-start', 'edit-dep-months', 'edit-dep-type', 'edit-dep-compounding'];
@@ -1297,7 +1379,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let grandMaturity = 0;
         let totalCount = 0;
 
-        Object.keys(grouped).sort().forEach(customer => {
+        Object.keys(grouped).sort().forEach((customer, idx) => {
             const g = grouped[customer];
             grandPrincipal += g.totalPrincipal;
             grandInterest += g.totalInterest;
@@ -1307,6 +1389,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const avgRate = g.totalPrincipal > 0 ? (g.weightedRateSum / g.totalPrincipal) : 0;
             const tr = document.createElement('tr');
             tr.innerHTML = `
+                <td style="text-align: center; color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">${idx + 1}</td>
                 <td style="font-weight: 600;" class="clickable" onclick="showCustomerDetails('${customer}')">${customer}</td>
                 <td>${g.count}</td>
                 <td>₹${g.totalPrincipal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
@@ -1320,7 +1403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (Object.keys(grouped).length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td style="text-align: right;">Grand Total:</td>
+                    <td colspan="2" style="text-align: right;">Grand Total:</td>
                     <td>${totalCount}</td>
                     <td>₹${grandPrincipal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     <td></td>
@@ -1329,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 </tr>
             `;
         } else {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No data available.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No data available.</td></tr>';
         }
     }
 
@@ -1391,11 +1474,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('rd-new-amount').value = d.amount;
 
         refreshRdLedgerTable(d);
+        history.pushState({ modal: 'rd-ledger-modal', view: currentActiveView }, '', '#modal-rd-ledger');
     };
 
     window.closeRdLedger = () => {
-        document.getElementById('rd-ledger-modal').style.display = 'none';
-        currentRdAectId = null;
+        const modal = document.getElementById('rd-ledger-modal');
+        if (modal && modal.style.display !== 'none') {
+            modal.style.display = 'none';
+            currentRdAectId = null;
+            if (history.state && history.state.modal === 'rd-ledger-modal') {
+                history.back();
+            }
+        }
     };
 
     window.addRdPayment = () => {
@@ -1439,13 +1529,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const ledgerResult = Calculations.generateRDLedger(d);
         
-        ledgerResult.ledger.forEach(row => {
+        ledgerResult.ledger.forEach((row, idx) => {
             const tr = document.createElement('tr');
             if (row.isInterest) {
                 tr.style.background = 'rgba(243,112,35,0.08)';
                 tr.style.fontWeight = '500';
             }
             tr.innerHTML = `
+                <td style="text-align: center; color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">${idx + 1}</td>
                 <td>${Calculations.formatDate(row.date)}</td>
                 <td style="${row.isInterest ? 'color: var(--accent);' : ''}">${row.particulars}</td>
                 <td style="text-align: right; color: #ef4444;">${row.debit > 0 ? '₹'+row.debit.toLocaleString('en-IN') : '--'}</td>
@@ -1458,7 +1549,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('rd-ledger-total-interest').textContent = `Total Capitalized Interest: ₹${ledgerResult.totalInterest.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
     }
 
-    window.showCustomerDetails = (name) => {
+    window.showCustomerDetails = (name, pushHistory = true) => {
+        if (pushHistory) {
+            switchView('customer-details', true, { customer: name });
+            return;
+        }
+
         const filtered = deposits.filter(d => d.customer === name);
         const totalInvested = filtered.reduce((sum, d) => sum + getCurrentBalance(d), 0);
         const totalInterest = filtered.reduce((sum, d) => sum + d.interestEarned, 0);
@@ -1514,6 +1610,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         views.forEach(v => v.style.display = 'none');
         document.getElementById('customer-details').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'instant' });
     };
 
     window.downloadCustomerDetailsPDF = async (name) => {
@@ -1649,6 +1746,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
         }
         document.getElementById('deposit-modal').style.display = 'flex';
+        history.pushState({ modal: 'deposit-modal', view: currentActiveView }, '', '#modal-deposit');
     };
 
     window.recordRDAmount = (id) => {
@@ -1677,7 +1775,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 
     window.closeModal = () => {
-        document.getElementById('deposit-modal').style.display = 'none';
+        const modal = document.getElementById('deposit-modal');
+        if (modal && modal.style.display !== 'none') {
+            modal.style.display = 'none';
+            if (history.state && history.state.modal === 'deposit-modal') {
+                history.back();
+            }
+        }
     };
 
     window.showNextMaturityDetails = () => {
@@ -1697,30 +1801,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         const earliestDate = upcoming[0].maturityDate;
         const nextDeposits = upcoming.filter(d => d.maturityDate === earliestDate);
 
-        // Switch View to Upcoming Maturities
-        const navItems = document.querySelectorAll('.sidebar .nav-item');
-        const views = document.querySelectorAll('.view');
-        navItems.forEach(i => i.classList.remove('active'));
-        const targetNav = document.querySelector('[data-view="upcoming-maturities"]');
-        if (targetNav) targetNav.classList.add('active');
-
-        views.forEach(v => v.style.display = 'none');
-        const targetView = document.getElementById('upcoming-maturities');
-        if (targetView) targetView.style.display = 'block';
-
-        // Update active filter button to "Next Maturity"
-        document.querySelectorAll('.filter-mat').forEach(b => {
-            b.classList.remove('btn-primary');
-            b.classList.add('btn-secondary');
-        });
-        const nextBtn = document.getElementById('filter-mat-next');
-        if (nextBtn) {
-            nextBtn.classList.remove('btn-secondary');
-            nextBtn.classList.add('btn-primary');
-        }
-
-        // Render table with ONLY the next maturity deposit(s)
-        renderUpcomingMaturities('next');
+        // Switch View to Upcoming Maturities with history
+        switchView('upcoming-maturities', true, { days: 'next' });
 
         // Immediately open the deposit details modal for that next maturing FD
         if (nextDeposits.length > 0) {
@@ -1880,7 +1962,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     }
 
-    window.showReferenceDetails = (name) => {
+    window.showReferenceDetails = (name, pushHistory = true) => {
+        if (pushHistory) {
+            switchView('reference-details', true, { reference: name });
+            return;
+        }
+
         const filtered = deposits.filter(d => d.name === name);
         const totalInvested = filtered.reduce((sum, d) => sum + getCurrentBalance(d), 0);
         const totalInterest = filtered.reduce((sum, d) => sum + d.interestEarned, 0);
@@ -1936,6 +2023,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         views.forEach(v => v.style.display = 'none');
         document.getElementById('reference-details').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'instant' });
     };
 
     window.downloadReferenceSummaryPDF = async () => {
@@ -2115,10 +2203,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Reference Details");
         XLSX.writeFile(wb, `reference_details_${name.replace(/\s+/g, '_')}.xlsx`);
-    };
-
-    window.closeModal = () => {
-        document.getElementById('deposit-modal').style.display = 'none';
     };
 
     function renderInterestReport() {
@@ -2407,6 +2491,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         `;
 
         modal.style.display = 'flex';
+        history.pushState({ modal: 'deposit-modal', view: currentActiveView }, '', '#modal-interest');
     };
 
     window.downloadFYInterestPDF = async (fy) => {
@@ -3044,32 +3129,44 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Global Escape Key Navigation
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
-            // Priority 1: Close any open modal
-            const depositModal = document.getElementById('deposit-modal');
+            // Priority 1: Do not bypass password security login modal
             const loginModal = document.getElementById('login-modal');
-            
             if (loginModal && loginModal.style.display !== 'none') {
-                // If login modal is open, don't allow bypass via escape
                 return;
             }
 
-            if (depositModal && depositModal.style.display !== 'none') {
+            // Priority 2: Close any open modal
+            const depModal = document.getElementById('deposit-modal');
+            const editModal = document.getElementById('edit-deposit-modal');
+            const rdModal = document.getElementById('rd-ledger-modal');
+
+            if (depModal && depModal.style.display !== 'none') {
                 closeModal();
                 return;
             }
-
-            // Priority 2: If we are in customer details view, go back to customer report
-            const customerDetailsView = document.getElementById('customer-details');
-            if (customerDetailsView && customerDetailsView.style.display !== 'none') {
-                document.querySelector('[data-view="customer-report"]').click();
+            if (editModal && editModal.style.display !== 'none') {
+                closeEditModal();
+                return;
+            }
+            if (rdModal && rdModal.style.display !== 'none') {
+                closeRdLedger();
                 return;
             }
 
-            // Priority 3: If we are in any other view except dashboard, go back to dashboard
-            const dashboardView = document.getElementById('dashboard');
-            if (dashboardView && dashboardView.style.display === 'none') {
-                document.querySelector('[data-view="dashboard"]').click();
+            // Priority 3: Close mobile sidebar drawer if open
+            const sidebarEl = document.querySelector('.sidebar');
+            const overlayEl = document.getElementById('sidebar-overlay');
+            if (sidebarEl && sidebarEl.classList.contains('mobile-open')) {
+                sidebarEl.classList.remove('mobile-open');
+                if (overlayEl) overlayEl.classList.remove('active');
                 return;
+            }
+
+            // Priority 4: Navigate back in history or return to dashboard
+            if (window.history.length > 1 && currentActiveView !== 'dashboard') {
+                window.history.back();
+            } else if (currentActiveView !== 'dashboard') {
+                switchView('dashboard');
             }
         }
     });
@@ -3239,7 +3336,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let totalInterest = 0;
         let totalMaturity = 0;
 
-        [...data.items].sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate)).forEach(d => {
+        [...data.items].sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate)).forEach((d, idx) => {
             totalPrincipal += (d.amount || 0);
             totalInterest += (d.interestEarned || 0);
             totalMaturity += (d.maturityAmount || 0);
@@ -3250,6 +3347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tr.title = 'Click to view deposit details';
             tr.onclick = () => showDepositModal(d.id);
             tr.innerHTML = `
+                <td style="text-align: center; color: var(--text-muted); font-size: 0.82rem; font-weight: 600;">${idx + 1}</td>
                 <td style="font-weight: 600;">${d.accNo || '--'}</td>
                 <td style="font-weight: 600;">${d.customer}</td>
                 <td style="font-weight: 600; color: var(--primary-light);">${d.name}</td>
@@ -3265,7 +3363,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (data.items.length > 0) {
             tfoot.innerHTML = `
                 <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
-                    <td colspan="4" style="text-align: right;">Total for ${monthName} ${data.year}:</td>
+                    <td colspan="5" style="text-align: right;">Total for ${monthName} ${data.year}:</td>
                     <td>₹${totalPrincipal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     <td>₹${totalInterest.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
                     <td></td>
@@ -3283,27 +3381,79 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.renderMonthlyReport = renderMonthlyReport;
 
     window.navigateToMonthlyReport = (monthKey) => {
-        const navItem = document.querySelector('[data-view="monthly-report"]');
-        if (navItem) {
-            document.querySelectorAll('.sidebar .nav-item').forEach(i => i.classList.remove('active'));
-            navItem.classList.add('active');
-
-            document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
-            const targetView = document.getElementById('monthly-report');
-            if (targetView) targetView.style.display = 'block';
-
-            let formattedKey = monthKey;
-            if (monthKey && monthKey.includes('-')) {
-                const [y, m] = monthKey.split('-').map(Number);
-                formattedKey = `${y}-${m - 1}`;
-            }
-            renderMonthlyReport(formattedKey);
+        let formattedKey = monthKey;
+        if (monthKey && monthKey.includes('-')) {
+            const [y, m] = monthKey.split('-').map(Number);
+            formattedKey = `${y}-${m - 1}`;
         }
+        switchView('monthly-report', true, { monthKey: formattedKey });
     };
+
+    // Global Mobile & Browser Back Button / History Navigation Handler
+    window.addEventListener('popstate', (e) => {
+        // Priority 1: If password login modal is active, do not allow bypassing
+        const loginModal = document.getElementById('login-modal');
+        if (loginModal && loginModal.style.display !== 'none') {
+            return;
+        }
+
+        // Priority 2: If mobile sidebar drawer is open, close it
+        const sidebarEl = document.querySelector('.sidebar');
+        const overlayEl = document.getElementById('sidebar-overlay');
+        if (sidebarEl && sidebarEl.classList.contains('mobile-open')) {
+            sidebarEl.classList.remove('mobile-open');
+            if (overlayEl) overlayEl.classList.remove('active');
+            return;
+        }
+
+        // Priority 3: If any modal is open, close it
+        const depModal = document.getElementById('deposit-modal');
+        const editModal = document.getElementById('edit-deposit-modal');
+        const rdModal = document.getElementById('rd-ledger-modal');
+        let modalClosed = false;
+
+        if (depModal && depModal.style.display !== 'none') {
+            depModal.style.display = 'none';
+            modalClosed = true;
+        }
+        if (editModal && editModal.style.display !== 'none') {
+            editModal.style.display = 'none';
+            modalClosed = true;
+        }
+        if (rdModal && rdModal.style.display !== 'none') {
+            rdModal.style.display = 'none';
+            currentRdAectId = null;
+            modalClosed = true;
+        }
+
+        if (modalClosed) {
+            return; // Modal closed, remain on the view where the modal was open
+        }
+
+        // Priority 4: Navigate to the previous view from history state
+        const targetView = (e.state && e.state.view) ? e.state.view : 'dashboard';
+        const extraData = e.state ? e.state.extraData : null;
+
+        // If already on target view and no extra data changed, avoid re-render
+        if (currentActiveView === targetView && !extraData) {
+            return;
+        }
+
+        isNavigatingHistory = true;
+        switchView(targetView, false, extraData);
+        isNavigatingHistory = false;
+    });
+
+    // Initialize initial route & history state
+    const initialHash = window.location.hash.replace('#', '');
+    const validViewEl = document.getElementById(initialHash);
+    const startView = (validViewEl && validViewEl.classList.contains('view')) ? initialHash : 'dashboard';
+    history.replaceState({ view: startView, isRoot: true }, '', '#' + startView);
+    currentActiveView = startView;
 
     // Initialize - Deferred for speed
     setTimeout(() => {
-        updateDashboard();
+        switchView(startView, false);
         checkAppSecurity();
     }, 0);
 });

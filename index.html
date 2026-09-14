@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deposit Management System — Premium Portfolio Tracking</title>
-    <link rel="stylesheet" href="css/styles.css?v=103">
+    <link rel="stylesheet" href="css/styles.css?v=105">
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -894,8 +894,8 @@
         <!-- Customer Details (Drill-down) -->
         <section id="customer-details" class="view" style="display: none;">
             <div class="header">
-                <button class="btn btn-sm" onclick="showDashboard()"><ion-icon src="lib/svg/arrow-back-outline.svg"></ion-icon> Back to Dashboard</button>
-                <div class="header-flex" style="margin-top: 10px;">
+                <button class="btn btn-secondary btn-sm" onclick="handleCustomerBack()" style="margin-bottom: 10px;"><ion-icon src="lib/svg/arrow-back-outline.svg"></ion-icon> Back</button>
+                <div class="header-flex" style="margin-top: 5px;">
                     <div>
                         <h1 id="details-customer-name">Customer Details</h1>
                         <p>Showing all deposits for this customer.</p>
@@ -1038,7 +1038,7 @@
         <section id="reference-details" class="view" style="display: none;">
             <div class="header">
                 <button class="btn btn-secondary btn-sm"
-                    onclick="document.querySelector('[data-view=\'reference-report\']').click()"
+                    onclick="handleReferenceBack()"
                     style="margin-bottom: 15px;">
                     <ion-icon src="lib/svg/arrow-back-outline.svg"></ion-icon> Back to Reference Report
                 </button>
@@ -1318,6 +1318,7 @@
                 <table id="rd-ledger-table" style="font-size: 0.9rem;">
                     <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10;">
                         <tr>
+                            <th style="width: 55px; text-align: center;">Sr No</th>
                             <th>Date</th>
                             <th>Particulars</th>
                             <th style="text-align: right;">Debit</th>
@@ -1341,7 +1342,7 @@
 
     <!-- Local Libraries (Loaded on demand in app.js for speed) -->
     <script src="js/calculations.js?v=2"></script>
-    <script src="js/app.js?v=7" defer></script>
+    <script src="js/app.js?v=9" defer></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
