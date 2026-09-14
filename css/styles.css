@@ -183,8 +183,8 @@ body {
 }
 
 .sidebar.collapsed .logo-text,
-.sidebar.collapsed .nav-item span {
-    display: none;
+.sidebar.collapsed .nav-item > span:not(.nav-icon-badge) {
+    display: none !important;
 }
 
 .sidebar.collapsed .logo {
@@ -398,11 +398,30 @@ body {
     50% { transform: scale(1.08); opacity: 0.85; }
 }
 
+.nav-item {
+    padding: 9px 12px;
+    border-radius: 10px;
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 0.92rem;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    position: relative;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1.5px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
 .nav-item:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.12);
     color: #ffffff;
     transform: translateX(4px);
-    border-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(243, 112, 35, 0.6);
+    box-shadow: 0 4px 12px rgba(243, 112, 35, 0.25);
 }
 
 .nav-item:hover .nav-icon-badge {
@@ -411,32 +430,40 @@ body {
 }
 
 .nav-item.active {
-    background: linear-gradient(135deg, rgba(243, 112, 35, 0.28) 0%, rgba(0, 85, 165, 0.25) 100%);
-    border: 1px solid rgba(243, 112, 35, 0.5);
+    background: linear-gradient(135deg, rgba(243, 112, 35, 0.35) 0%, rgba(0, 85, 165, 0.45) 100%);
+    border: 1.5px solid #F37023;
     color: #ffffff;
     font-weight: 700;
-    box-shadow: 0 4px 16px rgba(243, 112, 35, 0.35);
+    box-shadow: 0 4px 16px rgba(243, 112, 35, 0.45), inset 0 0 12px rgba(243, 112, 35, 0.2);
 }
 
 .nav-item.active .nav-icon-badge {
     box-shadow: 0 0 12px rgba(255, 255, 255, 0.4);
 }
 
-[data-theme="light"] .nav-item {
+[data-theme="light"] .nav-item,
+[data-theme="icici-light"] .nav-item {
+    background: #f8fafc;
+    border: 1.5px solid #cbd5e1;
     color: #1e293b;
     font-weight: 600;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-[data-theme="light"] .nav-item:hover {
+[data-theme="light"] .nav-item:hover,
+[data-theme="icici-light"] .nav-item:hover {
     color: #002244;
-    background: rgba(0, 51, 102, 0.06);
-    border-color: rgba(0, 51, 102, 0.12);
+    background: #f1f5f9;
+    border-color: #F37023;
+    box-shadow: 0 4px 10px rgba(243, 112, 35, 0.2);
 }
 
-[data-theme="light"] .nav-item.active {
-    background: linear-gradient(135deg, rgba(243, 112, 35, 0.18) 0%, rgba(0, 85, 165, 0.15) 100%);
-    border-color: rgba(243, 112, 35, 0.5);
+[data-theme="light"] .nav-item.active,
+[data-theme="icici-light"] .nav-item.active {
+    background: linear-gradient(135deg, rgba(243, 112, 35, 0.16) 0%, rgba(0, 85, 165, 0.14) 100%);
+    border: 1.5px solid #F37023;
     color: #002244;
+    box-shadow: 0 4px 12px rgba(243, 112, 35, 0.25);
 }
 
 /* Main Content */
@@ -1061,29 +1088,95 @@ select:focus {
     overflow-x: auto;
     overflow-y: hidden;
     min-height: 0;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .table-container,
+[data-theme="icici-light"] .table-container {
+    border: 1.5px solid #cbd5e1;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 table {
     width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 0;
 }
 
 th {
     text-align: left;
-    padding: 16px;
-    color: var(--text-primary);
+    padding: 13px 16px;
+    color: #ffffff;
     font-weight: 700;
+    font-size: 0.88rem;
+    letter-spacing: 0.02em;
+    background: linear-gradient(135deg, #0b223a 0%, #003366 60%, #1e3a5f 100%);
     border-bottom: 2px solid var(--primary);
-    background: rgba(243, 112, 35, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+th:last-child {
+    border-right: none;
+}
+
+[data-theme="light"] th,
+[data-theme="icici-light"] th {
+    background: linear-gradient(135deg, #fff2e8 0%, #fee4d2 100%);
+    color: #7c2d12;
+    border-bottom: 2.5px solid #F37023;
+    border-right: 1px solid #fed7aa;
 }
 
 td {
-    padding: 16px;
-    border-bottom: 1px solid var(--border);
+    padding: 13px 16px;
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
     color: var(--text-primary);
-    font-size: 0.94rem;
+    font-size: 0.92rem;
     font-weight: 500;
+}
+
+td:last-child {
+    border-right: none;
+}
+
+[data-theme="light"] td,
+[data-theme="icici-light"] td {
+    border-bottom: 1.5px solid #e2e8f0;
+    border-right: 1px solid #e2e8f0;
+    color: #1e293b;
+}
+
+/* Alternating zebra rows with rich fill */
+tbody tr:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.025);
+}
+
+tbody tr:nth-child(odd) {
+    background-color: transparent;
+}
+
+[data-theme="light"] tbody tr:nth-child(even),
+[data-theme="icici-light"] tbody tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+[data-theme="light"] tbody tr:nth-child(odd),
+[data-theme="icici-light"] tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+}
+
+tbody tr:hover {
+    background-color: rgba(243, 112, 35, 0.12) !important;
+}
+
+[data-theme="light"] tbody tr:hover,
+[data-theme="icici-light"] tbody tr:hover {
+    background-color: #fff7ed !important;
 }
 
 tr.clickable {
@@ -1091,13 +1184,11 @@ tr.clickable {
     transition: background 0.2s ease;
 }
 
-tr.clickable:hover {
-    background: rgba(243, 112, 35, 0.12) !important;
-}
-
 td.clickable {
     color: var(--primary-light);
     font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 [data-theme="light"] td.clickable,
@@ -1109,15 +1200,49 @@ tr:last-child td {
     border-bottom: none;
 }
 
+/* Table action buttons (Edit, Del) with visible borders and filled colors */
+table .btn-sm {
+    border-radius: 6px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    transition: all 0.2s ease;
+}
+
+table .btn-secondary.btn-sm,
+table button[onclick*="editDeposit"] {
+    background: #f1f5f9 !important;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1 !important;
+}
+
+table .btn-secondary.btn-sm:hover,
+table button[onclick*="editDeposit"]:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+}
+
+table button[onclick*="deleteDeposit"] {
+    background: #fef2f2 !important;
+    color: #ef4444 !important;
+    border: 1px solid #fecaca !important;
+}
+
+table button[onclick*="deleteDeposit"]:hover {
+    background: #fee2e2 !important;
+    color: #dc2626 !important;
+    border-color: #f87171 !important;
+}
+
 /* Compact Maturity Report */
 #maturity-table th,
 #maturity-table td {
-    padding: 8px 16px;
-    font-size: 0.9rem;
+    padding: 10px 14px;
+    font-size: 0.89rem;
 }
 
 #maturity-table .status-badge {
-    padding: 2px 8px;
+    padding: 3px 9px;
     font-size: 0.8rem;
 }
 

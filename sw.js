@@ -1,4 +1,4 @@
-const CACHE_NAME = 'depositpro-v12';
+const CACHE_NAME = 'depositpro-v13';
 const ASSETS = [
     './',
     './index.html',
@@ -57,12 +57,14 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-    // Network-first for CSS & JS to ensure fresh styles apply immediately
-    if (e.request.url.includes('.css') || e.request.url.includes('.js')) {
+    // Network-first for HTML, CSS & JS so mobile browsers and GitHub Pages always load latest version
+    if (e.request.mode === 'navigate' || e.request.url.includes('.html') || e.request.url.includes('.css') || e.request.url.includes('.js')) {
         e.respondWith(
             fetch(e.request).then((response) => {
-                const clone = response.clone();
-                caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+                if (response && response.status === 200) {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+                }
                 return response;
             }).catch(() => caches.match(e.request))
         );
