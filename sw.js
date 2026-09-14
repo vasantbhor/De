@@ -1,4 +1,4 @@
-const CACHE_NAME = 'depositpro-v6';
+const CACHE_NAME = 'depositpro-v12';
 const ASSETS = [
     './',
     './index.html',
@@ -52,14 +52,25 @@ self.addEventListener('activate', (e) => {
                     }
                 })
             );
-        })
+        }).then(() => self.clients.claim())
     );
 });
 
 self.addEventListener('fetch', (e) => {
-    e.respondWith(
-        caches.match(e.request).then((response) => {
-            return response || fetch(e.request);
-        })
-    );
+    // Network-first for CSS & JS to ensure fresh styles apply immediately
+    if (e.request.url.includes('.css') || e.request.url.includes('.js')) {
+        e.respondWith(
+            fetch(e.request).then((response) => {
+                const clone = response.clone();
+                caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+                return response;
+            }).catch(() => caches.match(e.request))
+        );
+    } else {
+        e.respondWith(
+            caches.match(e.request).then((response) => {
+                return response || fetch(e.request);
+            })
+        );
+    }
 });

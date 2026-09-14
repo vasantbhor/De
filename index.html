@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Deposit Management System — Premium Portfolio Tracking</title>
-    <link rel="stylesheet" href="css/styles.css?v=99">
+    <link rel="stylesheet" href="css/styles.css?v=102">
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
@@ -128,55 +128,56 @@
         </div>
         <ul class="nav-links">
             <li class="nav-item active" data-view="dashboard">
-                <ion-icon src="lib/svg/grid-outline.svg"></ion-icon>
+                <span class="nav-icon-badge badge-dashboard"><ion-icon src="lib/svg/grid-outline.svg"></ion-icon></span>
                 <span>Dashboard</span>
             </li>
             <li class="nav-item" data-view="new-deposit">
-                <ion-icon src="lib/svg/add-circle-outline.svg"></ion-icon>
+                <span class="nav-icon-badge badge-new-deposit"><ion-icon src="lib/svg/add-circle-outline.svg"></ion-icon></span>
                 <span>Open Deposit</span>
+                <span class="nav-tag-new">NEW</span>
             </li>
             <li class="nav-item" data-view="find-edit-deposit">
-                <ion-icon src="lib/svg/search-outline.svg"></ion-icon>
-                <span>Find & Edit Deposit</span>
+                <span class="nav-icon-badge badge-find-edit"><ion-icon src="lib/svg/search-outline.svg"></ion-icon></span>
+                <span>Find & Edit</span>
             </li>
             <li class="nav-item" data-view="manage-rd">
-                <ion-icon src="lib/svg/wallet-outline.svg"></ion-icon>
+                <span class="nav-icon-badge badge-manage-rd"><ion-icon src="lib/svg/trending-up-outline.svg"></ion-icon></span>
                 <span>Manage RD</span>
             </li>
             <li class="nav-item" data-view="maturity-report">
-                <ion-icon src="lib/svg/list-outline.svg"></ion-icon>
+                <span class="nav-icon-badge badge-maturity-report"><ion-icon src="lib/svg/list-outline.svg"></ion-icon></span>
                 <span>Maturity Report</span>
             </li>
             <li class="nav-item" data-view="upcoming-maturities">
-                <ion-icon src="lib/svg/notifications-outline.svg"></ion-icon>
-                <span>Upcoming Maturities</span>
+                <span class="nav-icon-badge badge-upcoming"><ion-icon src="lib/svg/notifications-outline.svg"></ion-icon></span>
+                <span>Upcoming Due</span>
             </li>
             <li class="nav-item" data-view="interest-report">
-                <ion-icon src="lib/svg/trending-up-outline.svg"></ion-icon>
-                <span>Interest Report</span>
+                <span class="nav-icon-badge badge-interest"><ion-icon src="lib/svg/trending-up-outline.svg"></ion-icon></span>
+                <span>Interest Earned</span>
             </li>
             <li class="nav-item" data-view="customer-report">
-                <ion-icon src="lib/svg/people-outline.svg"></ion-icon>
-                <span>Customer Report</span>
+                <span class="nav-icon-badge badge-customer"><ion-icon src="lib/svg/people-outline.svg"></ion-icon></span>
+                <span>Customer Book</span>
             </li>
             <li class="nav-item" data-view="due-report">
-                <ion-icon src="lib/svg/calendar-outline.svg"></ion-icon>
-                <span>Due Report</span>
+                <span class="nav-icon-badge badge-due"><ion-icon src="lib/svg/calendar-outline.svg"></ion-icon></span>
+                <span>Due Calendar</span>
             </li>
             <li class="nav-item" data-view="type-report">
-                <ion-icon src="lib/svg/pie-chart-outline.svg"></ion-icon>
-                <span>Type Report</span>
+                <span class="nav-icon-badge badge-type"><ion-icon src="lib/svg/pie-chart-outline.svg"></ion-icon></span>
+                <span>Type Analytics</span>
             </li>
             <li class="nav-item" data-view="reference-report">
-                <ion-icon src="lib/svg/bookmarks-outline.svg"></ion-icon>
-                <span>Reference Report</span>
+                <span class="nav-icon-badge badge-reference"><ion-icon src="lib/svg/bookmarks-outline.svg"></ion-icon></span>
+                <span>Reference List</span>
             </li>
             <li class="nav-item" data-view="monthly-report">
-                <ion-icon src="lib/svg/calendar-number-outline.svg"></ion-icon>
-                <span>Monthly Report</span>
+                <span class="nav-icon-badge badge-monthly"><ion-icon src="lib/svg/calendar-outline.svg"></ion-icon></span>
+                <span>Monthly Tracker</span>
             </li>
             <li class="nav-item" data-view="settings">
-                <ion-icon src="lib/svg/settings-outline.svg"></ion-icon>
+                <span class="nav-icon-badge badge-settings"><ion-icon src="lib/svg/settings-outline.svg"></ion-icon></span>
                 <span>Backup & Settings</span>
             </li>
         </ul>
@@ -404,109 +405,195 @@
 
         <!-- New Deposit View -->
         <section id="new-deposit" class="view" style="display: none;">
-            <div class="header">
-                <h1>Open New Deposit</h1>
-                <p>Enter the details for your new fixed deposit.</p>
+            <div class="header open-deposit-header">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <h1>Open New Deposit</h1>
+                            <span class="badge-live-pulse">⚡ Dynamic Calculator</span>
+                        </div>
+                        <p>Configure and open a Fixed Deposit, Recurring Deposit, or Damduppat with instant live returns.</p>
+                    </div>
+                    <div class="open-header-pill">
+                        <span>💰 Maximize Returns</span>
+                    </div>
+                </div>
             </div>
             <div class="form-preview-grid">
-                <div class="card">
+                <div class="open-deposit-form-container">
                     <form id="deposit-form" class="form-grid">
-                        <div class="form-row form-row-2">
-                            <div class="form-group">
-                                <label>Customer Name</label>
-                                <input type="text" id="dep-customer" placeholder="John Doe" list="customer-suggestions"
-                                    autocomplete="off" required>
-                                <datalist id="customer-suggestions"></datalist>
+                        
+                        <!-- Section 1: Customer & Account Info -->
+                        <div class="form-section-card customer-section">
+                            <div class="form-section-title">
+                                <span class="form-section-badge blue-badge">
+                                    <ion-icon src="lib/svg/people-outline.svg"></ion-icon>
+                                </span>
+                                <div>
+                                    <h4>Account Holder & Identification</h4>
+                                    <small>Select customer and enter reference name</small>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Deposit Name / Reference</label>
-                                <input type="text" id="dep-name" placeholder="SBI FD - 1234" list="deposit-suggestions"
-                                    autocomplete="off" required>
-                                <datalist id="deposit-suggestions"></datalist>
-                            </div>
-                        </div>
-                        <div class="form-row form-row-3">
-                            <div class="form-group">
-                                <label>Deposit Type</label>
-                                <select id="dep-type">
-                                    <option value="FD">Fixed Deposit (FD)</option>
-                                    <option value="RD">Recurring Deposit (RD)</option>
-                                    <option value="DD">Damduppat (DD)</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Account Number</label>
-                                <input type="text" id="dep-acc-no" placeholder="9876543210" required>
-                            </div>
-                            <div class="form-group">
-                                <label id="label-amount">Principal Amount (₹)</label>
-                                <input type="number" id="dep-amount" placeholder="50000" required>
+                            <div class="form-row form-row-2">
+                                <div class="form-group">
+                                    <label>Customer Name</label>
+                                    <input type="text" id="dep-customer" placeholder="e.g. Rahul Sharma" list="customer-suggestions"
+                                        autocomplete="off" required>
+                                    <datalist id="customer-suggestions"></datalist>
+                                </div>
+                                <div class="form-group">
+                                    <label>Deposit Name / Reference</label>
+                                    <input type="text" id="dep-name" placeholder="e.g. HDFC 3-Yr Growth FD" list="deposit-suggestions"
+                                        autocomplete="off" required>
+                                    <datalist id="deposit-suggestions"></datalist>
+                                </div>
                             </div>
                         </div>
-                        <div class="form-row form-row-3">
-                            <div class="form-group" id="installment-day-group" style="display: none;">
-                                <label>Installment Day (1-31)</label>
-                                <input type="number" id="dep-installment-day" min="1" max="31" placeholder="5">
+
+                        <!-- Section 2: Financial Investment Details -->
+                        <div class="form-section-card financial-section">
+                            <div class="form-section-title">
+                                <span class="form-section-badge green-badge">
+                                    <ion-icon src="lib/svg/trending-up-outline.svg"></ion-icon>
+                                </span>
+                                <div>
+                                    <h4>Deposit Scheme & Amount</h4>
+                                    <small>Choose scheme type, account number and investment amount</small>
+                                </div>
                             </div>
-                            <div class="form-group">
-                                <label>Interest Rate (%)</label>
-                                <input type="number" step="0.01" id="dep-rate" placeholder="7.5" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Start Date</label>
-                                <input type="date" id="dep-start" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Duration (Months)</label>
-                                <input type="number" id="dep-months" placeholder="12" required>
-                            </div>
-                        </div>
-                        <div class="form-row form-row-2">
-                            <div class="form-group" id="compounding-group">
-                                <label>Compounding Frequency</label>
-                                <select id="dep-compounding">
-                                    <option value="12">Annually</option>
-                                    <option value="4" selected>Quarterly</option>
-                                    <option value="1">Monthly</option>
-                                    <option value="0">Simple Interest</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>Payout Type</label>
-                                <select id="dep-payout">
-                                    <option value="maturity">At Maturity</option>
-                                    <option value="monthly">Monthly</option>
-                                    <option value="quarterly">Quarterly</option>
-                                    <option value="yearly">Yearly</option>
-                                </select>
+                            <div class="form-row form-row-3">
+                                <div class="form-group">
+                                    <label>Deposit Type</label>
+                                    <select id="dep-type">
+                                        <option value="FD">Fixed Deposit (FD)</option>
+                                        <option value="RD">Recurring Deposit (RD)</option>
+                                        <option value="DD">Damduppat (DD)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Account Number</label>
+                                    <input type="text" id="dep-acc-no" placeholder="9876543210" required>
+                                </div>
+                                <div class="form-group">
+                                    <label id="label-amount">Principal Amount (₹)</label>
+                                    <input type="number" id="dep-amount" placeholder="50000" required>
+                                </div>
                             </div>
                         </div>
-                        <div style="margin-top: 20px;">
-                            <button type="submit" class="btn btn-primary">Save Deposit</button>
+
+                        <!-- Section 3: Duration & Interest Terms -->
+                        <div class="form-section-card duration-section">
+                            <div class="form-section-title">
+                                <span class="form-section-badge amber-badge">
+                                    <ion-icon src="lib/svg/calendar-outline.svg"></ion-icon>
+                                </span>
+                                <div>
+                                    <h4>Interest Rate, Duration & Payout</h4>
+                                    <small>Set timeline, interest compounding and payout terms</small>
+                                </div>
+                            </div>
+                            <div class="form-row form-row-3">
+                                <div class="form-group" id="installment-day-group" style="display: none;">
+                                    <label>Installment Day (1-31)</label>
+                                    <input type="number" id="dep-installment-day" min="1" max="31" placeholder="5">
+                                </div>
+                                <div class="form-group">
+                                    <label>Interest Rate (%)</label>
+                                    <input type="number" step="0.01" id="dep-rate" placeholder="7.5" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Start Date</label>
+                                    <input type="date" id="dep-start" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>Duration (Months)</label>
+                                    <input type="number" id="dep-months" placeholder="12" required>
+                                </div>
+                            </div>
+                            <div class="form-row form-row-2">
+                                <div class="form-group" id="compounding-group">
+                                    <label>Compounding Frequency</label>
+                                    <select id="dep-compounding">
+                                        <option value="12">Annually</option>
+                                        <option value="4" selected>Quarterly</option>
+                                        <option value="1">Monthly</option>
+                                        <option value="0">Simple Interest</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>Payout Type</label>
+                                    <select id="dep-payout">
+                                        <option value="maturity">At Maturity</option>
+                                        <option value="monthly">Monthly</option>
+                                        <option value="quarterly">Quarterly</option>
+                                        <option value="yearly">Yearly</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Submit Button -->
+                        <div style="margin-top: 10px;">
+                            <button type="submit" class="btn btn-save-deposit">
+                                <ion-icon src="lib/svg/add-circle-outline.svg"></ion-icon>
+                                <span>Save & Open Deposit</span>
+                            </button>
                         </div>
                     </form>
                 </div>
 
-                <!-- Live Preview Card -->
-                <div class="card" id="preview-card" style="position: sticky; top: 32px;">
-                    <h3 style="margin-bottom: 20px; color: var(--primary-light);">Live Preview</h3>
-                    <div style="display: flex; flex-direction: column; gap: 16px;">
-                        <div class="preview-item">
-                            <p class="text-secondary" style="font-size: 0.8rem;">Maturity Date</p>
-                            <h3 id="preview-maturity-date">--</h3>
+                <!-- Colorful Glassmorphic Live Preview Card -->
+                <div class="preview-panel-wrap" style="position: sticky; top: 32px;">
+                    <div class="card preview-card-colorful" id="preview-card">
+                        <div class="preview-header-bar">
+                            <div>
+                                <span class="preview-eyebrow">Real-Time Forecast</span>
+                                <h3 class="preview-title">Live Preview</h3>
+                            </div>
+                            <span class="preview-type-badge badge-fd" id="preview-type-badge">FD</span>
                         </div>
-                        <div class="preview-item">
-                            <p class="text-secondary" style="font-size: 0.8rem;">Interest Earned</p>
-                            <h3 id="preview-interest" style="color: var(--accent);">₹0.00</h3>
+
+                        <div class="preview-metrics-grid">
+                            <!-- Metric 1: Maturity Date (Blue) -->
+                            <div class="preview-metric-chip chip-blue">
+                                <div class="chip-top">
+                                    <span class="chip-icon"><ion-icon src="lib/svg/calendar-outline.svg"></ion-icon></span>
+                                    <span class="chip-label">Maturity Date</span>
+                                </div>
+                                <h3 class="chip-val" id="preview-maturity-date">--</h3>
+                            </div>
+
+                            <!-- Metric 2: Estimated Interest (Green) -->
+                            <div class="preview-metric-chip chip-green">
+                                <div class="chip-top">
+                                    <span class="chip-icon"><ion-icon src="lib/svg/trending-up-outline.svg"></ion-icon></span>
+                                    <span class="chip-label">Interest Earned</span>
+                                </div>
+                                <h3 class="chip-val val-green" id="preview-interest">₹0.00</h3>
+                            </div>
+
+                            <!-- Metric 3: Maturity Amount (Amber/Orange) -->
+                            <div class="preview-metric-chip chip-amber">
+                                <div class="chip-top">
+                                    <span class="chip-icon"><ion-icon src="lib/svg/grid-outline.svg"></ion-icon></span>
+                                    <span class="chip-label">Maturity Value</span>
+                                </div>
+                                <h3 class="chip-val val-amber" id="preview-maturity-amount">₹0.00</h3>
+                            </div>
+
+                            <!-- Metric 4: Portfolio Total (Purple) -->
+                            <div class="preview-metric-chip chip-purple">
+                                <div class="chip-top">
+                                    <span class="chip-icon"><ion-icon src="lib/svg/pie-chart-outline.svg"></ion-icon></span>
+                                    <span class="chip-label">New Total Portfolio</span>
+                                </div>
+                                <h3 class="chip-val val-purple" id="preview-portfolio-total">₹0.00</h3>
+                            </div>
                         </div>
-                        <div class="preview-item">
-                            <p class="text-secondary" style="font-size: 0.8rem;">Maturity Amount</p>
-                            <h3 id="preview-maturity-amount">₹0.00</h3>
-                        </div>
-                        <hr style="border: none; border-top: 1px solid var(--border); margin: 8px 0;">
-                        <div class="preview-item">
-                            <p class="text-secondary" style="font-size: 0.8rem;">Total Portfolio Interest (New Est.)</p>
-                            <h3 id="preview-portfolio-total">₹0.00</h3>
+
+                        <div class="preview-footer-note">
+                            <ion-icon src="lib/svg/document-text-outline.svg"></ion-icon>
+                            <span>Calculations update automatically as you type.</span>
                         </div>
                     </div>
                 </div>
@@ -1243,7 +1330,7 @@
 
     <!-- Local Libraries (Loaded on demand in app.js for speed) -->
     <script src="js/calculations.js?v=2"></script>
-    <script src="js/app.js?v=4" defer></script>
+    <script src="js/app.js?v=7" defer></script>
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {

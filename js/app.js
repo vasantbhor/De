@@ -518,6 +518,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         const currentTotalInterest = deposits.reduce((sum, d) => sum + d.interestEarned, 0);
         document.getElementById('preview-portfolio-total').textContent = `₹${(currentTotalInterest + details.interestEarned).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
+        // Update preview type badge
+        const badge = document.getElementById('preview-type-badge');
+        if (badge) {
+            badge.textContent = type;
+            badge.className = `preview-type-badge badge-${type.toLowerCase()}`;
+        }
+
         // Dynamic UI adjustment for DD and RD
         document.getElementById('compounding-group').style.display = type === 'DD' ? 'none' : 'block';
 
@@ -864,7 +871,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const b = monthBuckets[k];
                     const pct = (b.total / maxVal) * 130;
                     const amtStr = b.total > 0 ? `₹${(b.total/1000).toFixed(0)}K` : '';
-                    return `<div class="fin-bar-col">
+                    return `<div class="fin-bar-col" onclick="navigateToMonthlyReport('${k}')" style="cursor: pointer;" title="View ${b.label} Maturities">
                         <div class="fin-bar-fill" style="height:${Math.max(pct, b.total > 0 ? 8 : 0)}px" data-amt="${amtStr}"></div>
                         <div class="fin-bar-label">${b.label}${b.count ? `<br><span style='color:var(--primary-light);font-weight:700'>${b.count}</span>` : ''}</div>
                     </div>`;
@@ -3052,11 +3059,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
     });
 
-    function renderMonthlyReport() {
+    function renderMonthlyReport(targetMonthKey = null) {
         const container = document.getElementById('monthly-summary-container');
         if (!container) return;
         container.innerHTML = '';
-        document.getElementById('monthly-details-section').style.display = 'none';
+        const detailsSection = document.getElementById('monthly-details-section');
+        if (detailsSection) detailsSection.style.display = 'none';
 
         // Helper to get FY label (e.g., 25-26)
         const getFY = (date) => {
@@ -3067,7 +3075,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         const today = new Date();
-        const currentFY = getFY(today);
+        today.setHours(0, 0, 0, 0);
         
         // Determine which FYs to show (Current and Next)
         const yearBase = today.getMonth() < 3 ? today.getFullYear() - 1 : today.getFullYear();
@@ -3089,6 +3097,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const monthKey = `${matDate.getFullYear()}-${matDate.getMonth()}`;
                 if (!monthlyData[monthKey]) {
                     monthlyData[monthKey] = {
+                        key: monthKey,
                         month: matDate.getMonth(),
                         year: matDate.getFullYear(),
                         fy: fy,
@@ -3113,6 +3122,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             return yA !== yB ? yA - yB : mA - mB;
         });
 
+        let defaultBox = null;
+        let defaultData = null;
+        const currentMonthKey = `${today.getFullYear()}-${today.getMonth()}`;
+
         fyList.forEach(fy => {
             const fyKeys = sortedKeys.filter(k => monthlyData[k].fy === fy);
             if (fyKeys.length === 0 && (fy !== fyList[1] || carryoverCount === 0)) return;
@@ -3134,8 +3147,20 @@ document.addEventListener('DOMContentLoaded', async () => {
                     <div class="counts">${data.count} FD & Amount</div>
                     <div class="amount">₹${data.amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
                 `;
-                box.onclick = () => showMonthlyDetails(data, box);
+                box.onclick = () => showMonthlyDetails(data, box, true);
                 boxesRow.appendChild(box);
+
+                // Check for default selection
+                if (targetMonthKey && key === targetMonthKey) {
+                    defaultBox = box;
+                    defaultData = data;
+                } else if (!defaultData && key === currentMonthKey) {
+                    defaultBox = box;
+                    defaultData = data;
+                } else if (!defaultData && (data.year > today.getFullYear() || (data.year === today.getFullYear() && data.month >= today.getMonth()))) {
+                    defaultBox = box;
+                    defaultData = data;
+                }
             });
 
             // Add carryover if it's the last displayed FY row
@@ -3155,43 +3180,111 @@ document.addEventListener('DOMContentLoaded', async () => {
             container.appendChild(fyGroup);
         });
 
+        // If no default picked yet, pick the first available month box
+        if (!defaultData && sortedKeys.length > 0) {
+            const firstKey = sortedKeys[0];
+            defaultData = monthlyData[firstKey];
+            defaultBox = container.querySelector('.month-box');
+        }
+
+        // Automatically show details for that month!
+        if (defaultData && defaultBox) {
+            showMonthlyDetails(defaultData, defaultBox, false);
+        }
+
         if (container.innerHTML === '') {
             container.innerHTML = '<p class="text-secondary" style="text-align: center; padding: 40px;">No upcoming maturities found for the current periods.</p>';
         }
     }
 
-    function showMonthlyDetails(data, element) {
+    function showMonthlyDetails(data, element, shouldScroll = true) {
         document.querySelectorAll('.month-box').forEach(b => b.classList.remove('active'));
-        element.classList.add('active');
+        if (element) element.classList.add('active');
 
         const section = document.getElementById('monthly-details-section');
         const title = document.getElementById('monthly-details-title');
-        const tbody = document.getElementById('monthly-details-table').querySelector('tbody');
+        const table = document.getElementById('monthly-details-table');
+        const tbody = table.querySelector('tbody');
+        let tfoot = table.querySelector('tfoot');
+        if (!tfoot) {
+            tfoot = document.createElement('tfoot');
+            table.appendChild(tfoot);
+        }
 
         const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(new Date(data.year, data.month));
-        title.textContent = `Maturities Breakdown: ${monthName} ${data.year}`;
+        title.innerHTML = `
+            <span>Maturities Breakdown: <strong style="color: var(--primary-light);">${monthName} ${data.year}</strong> (${data.items.length} FD${data.items.length > 1 ? 's' : ''})</span>
+            <small style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-top: 4px; font-weight: 500;">Click any row to view its complete deposit details</small>
+        `;
         
         tbody.innerHTML = '';
+        tfoot.innerHTML = '';
+
+        let totalPrincipal = 0;
+        let totalInterest = 0;
+        let totalMaturity = 0;
+
         [...data.items].sort((a, b) => new Date(a.maturityDate) - new Date(b.maturityDate)).forEach(d => {
+            totalPrincipal += (d.amount || 0);
+            totalInterest += (d.interestEarned || 0);
+            totalMaturity += (d.maturityAmount || 0);
+
             const tr = document.createElement('tr');
+            tr.className = 'clickable';
+            tr.style.cursor = 'pointer';
+            tr.title = 'Click to view deposit details';
+            tr.onclick = () => showDepositModal(d.id);
             tr.innerHTML = `
-                <td>${d.accNo}</td>
-                <td class="clickable" onclick="showCustomerDetails('${d.customer}')">${d.customer}</td>
-                <td class="clickable" onclick="showDepositModal(${d.id})">${d.name}</td>
+                <td style="font-weight: 600;">${d.accNo || '--'}</td>
+                <td style="font-weight: 600;">${d.customer}</td>
+                <td style="font-weight: 600; color: var(--primary-light);">${d.name}</td>
                 <td><span class="badge" style="background: rgba(243,112,35,0.15); color: var(--primary-light);">${d.type}</span></td>
                 <td>₹${d.amount.toLocaleString()}</td>
-                <td>₹${d.interestEarned.toLocaleString()}</td>
+                <td>₹${(d.interestEarned || 0).toLocaleString()}</td>
                 <td>${Calculations.formatDate(d.maturityDate)}</td>
-                <td style="font-weight: 700;">₹${d.maturityAmount.toLocaleString()}</td>
+                <td style="font-weight: 700; color: var(--accent);">₹${d.maturityAmount.toLocaleString()}</td>
             `;
             tbody.appendChild(tr);
         });
 
+        if (data.items.length > 0) {
+            tfoot.innerHTML = `
+                <tr style="border-top: 2px solid var(--primary); font-weight: 700;">
+                    <td colspan="4" style="text-align: right;">Total for ${monthName} ${data.year}:</td>
+                    <td>₹${totalPrincipal.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                    <td>₹${totalInterest.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                    <td></td>
+                    <td style="color: var(--accent);">₹${totalMaturity.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</td>
+                </tr>
+            `;
+        }
+
         section.style.display = 'block';
-        section.scrollIntoView({ behavior: 'smooth' });
+        if (shouldScroll) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
     }
 
     window.renderMonthlyReport = renderMonthlyReport;
+
+    window.navigateToMonthlyReport = (monthKey) => {
+        const navItem = document.querySelector('[data-view="monthly-report"]');
+        if (navItem) {
+            document.querySelectorAll('.sidebar .nav-item').forEach(i => i.classList.remove('active'));
+            navItem.classList.add('active');
+
+            document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+            const targetView = document.getElementById('monthly-report');
+            if (targetView) targetView.style.display = 'block';
+
+            let formattedKey = monthKey;
+            if (monthKey && monthKey.includes('-')) {
+                const [y, m] = monthKey.split('-').map(Number);
+                formattedKey = `${y}-${m - 1}`;
+            }
+            renderMonthlyReport(formattedKey);
+        }
+    };
 
     // Initialize - Deferred for speed
     setTimeout(() => {
